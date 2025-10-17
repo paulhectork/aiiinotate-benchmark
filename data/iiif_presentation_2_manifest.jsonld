@@ -1,0 +1,80 @@
+{
+  "@id": "https://gallica.bnf.fr/iiif/ark:/12148/btv1b8490076p/manifest.json",
+  "label": "BnF. Département des Manuscrits. Latin 2422",
+  "attribution": "Bibliothèque nationale de France",
+  "license": "https://gallica.bnf.fr/html/und/conditions-dutilisation-des-contenus-de-gallica",
+  "logo": "https://gallica.bnf.fr/mbImage/logos/logo-bnf.png",
+  "related": "https://gallica.bnf.fr/ark:/12148/btv1b8490076p",
+  "seeAlso": [
+    "http://oai.bnf.fr/oai2/OAIHandler?verb=GetRecord&metadataPrefix=oai_dc&identifier=oai:bnf.fr:gallica/ark:/12148/btv1b8490076p"
+  ],
+  "description": "Rabanus Maurus, In honorem sanctae Crucis [De laudibus sanctae Crucis].",
+  "metadata": [
+    {
+      "label": "Repository",
+      "value": ""
+    },
+    {
+      "label": "Digitised by",
+      "value": "Bibliothèque nationale de France"
+    },
+    {
+      "label": "Source Images",
+      "value": "https://gallica.bnf.fr/ark:/12148/btv1b8490076p"
+    },
+    {
+      "label": "Metadata Source",
+      "value": "http://oai.bnf.fr/oai2/OAIHandler?verb=GetRecord&metadataPrefix=oai_dc&identifier=oai:bnf.fr:gallica/ark:/12148/btv1b8490076p"
+    },
+    {
+      "label": "Shelfmark",
+      "value": "Bibliothèque nationale de France. Département des Manuscrits. Latin 2422"
+    },
+    {
+      "label": "Title",
+      "value": "Rabanus Maurus, In honorem sanctae Crucis [De laudibus sanctae Crucis]."
+    },
+    {
+      "label": "Date",
+      "value": "0822-0847"
+    },
+    {
+      "label": "Language",
+      "value": "latin"
+    },
+    {
+      "label": "Format",
+      "value": "Mayence (?). - Minuscule caroline de plusieurs mains (6 selon Spilling, 1992, suivi par Perrin; 5 d'après Vezin); les deux dernières seraient de Mayence, les autres de Fulda. — Initiales peintes. Rubriques en onciales ou capitales rustiques. - 28 carmina figurata en couleur sur fond quadrillé à la pointe sèche (carreaux env. 5 x 5 mm), dont 4 avec personnages. - Parch. - 43 f. - 365 x 280 mm (just. f. 1-31: 300 x 250 mm ; f. 32-42: 290 x 220 mm). - Piqûres sur les quatre bords, de manière à obtenir un quadrillage (f. 1-31). - Reliure ancienne de parchemin souple sur carton (le plat supérieur est fortement endommagé); avec titre noté à l'encre au dos: « Rabanus Maurus de cruce ». - Estampilles de la Bibliothèque royale (Ancien régime, avant 1735), modèle identique à Josserand-Bruno, p. 268, type B n° 5"
+    },
+    {
+      "label": "Creator",
+      "value": "Rabanus Maurus"
+    },
+    {
+      "label": "Relation",
+      "value": "Notice du catalogue : http://archivesetmanuscrits.bnf.fr/ark:/12148/cc946347"
+    },
+    {
+      "label": "Type",
+      "value": "Manuscript"
+    },
+    {
+      "label": "Place",
+      "value": "Lieu de copie : Mayence (?)"
+    }
+  ],
+  "sequences": [
+    {
+      "canvases": [
+      ],
+      "label": "Current Page Order",
+      "@type": "sc:Sequence",
+      "@id": "https://gallica.bnf.fr/iiif/ark:/12148/btv1b8490076p/sequence/default"
+    }
+  ],
+  "thumbnail": {
+    "@id": "https://gallica.bnf.fr/ark:/12148/btv1b8490076p.thumbnail"
+  },
+  "@type": "sc:Manifest",
+  "@context": "http://iiif.io/api/presentation/2/context.json"
+}
