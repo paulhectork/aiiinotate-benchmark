@@ -1,0 +1,6 @@
+[submodule "aiiinotate"]
+	path = aiiinotate
+	url = https://github.com/Aikon-platform/aiiinotate
+[submodule "SimpleAnnotationServer"]
+	path = SimpleAnnotationServer
+	url = https://github.com/glenrobson/SimpleAnnotationServer.git
