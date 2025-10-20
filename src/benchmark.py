@@ -18,10 +18,14 @@ def validate_steps(steps) -> None:
         isinstance(i, int) for step in steps for i in step
     ):
         raise err
+    if not all(
+        i>=0 for step in steps for i in step
+    ):
+        raise err
     return
 
 def validate_adapter(adapter) -> None:
-    if not issubclass(adapter, AdapterCore):
+    if not isinstance(adapter, AdapterCore):
         raise TypeError(f"validate_adapter: adapter '{adapter}' should inherit from 'AdapterCore'")
     return
 

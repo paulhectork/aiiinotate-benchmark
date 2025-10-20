@@ -1,9 +1,24 @@
+import re
 from typing import Dict, List, Tuple
+
+import requests
+
+
+def validate_endpoint(endpoint: str) -> str:
+    endpoint = re.sub("/$", "", endpoint)  # delete trailing "/"
+    try:
+        requests.get(endpoint)
+    except requests.exceptions.ConnectionError:
+        raise ValueError(f"validate_endpoint: failed to connect to endpoint: '{endpoint}'")
+    return endpoint
 
 
 class AdapterCore:
     def __init__(self, endpoint):
-        self.endpoint = endpoint
+        """
+        :param endpoint: full endpoint (including the service: 'http://' and port, if on localhost)
+        """
+        self.endpoint = validate_endpoint(endpoint)
         return
 
     def insert_manifest(self, manifest: Dict):
