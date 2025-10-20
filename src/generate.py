@@ -17,7 +17,7 @@ def generate_annotation(id_canvas:str) -> Dict:
     annotation["on"] = id_canvas
     return annotation
 
-def generate_annotation_list(id_canvas, n_annotations:int) -> Dict:
+def generate_annotationlist(id_canvas, n_annotations:int) -> Dict:
     """generate an annotationlist on canvas `id_canvas` with `n` annotations"""
     # f"https://aikon.enpc.fr/aikon/iiif/v2/{uuid4()}/canvas/c_${uuid4()}.json#xywh=5,0,1824,2161"
     return {}
@@ -53,20 +53,20 @@ def generate_all(n_manifest:int=1000, n_canvas:int=1000, n_annotation:int=100) -
     :param n_canvas: number of canvases / manifest
     :param n_annotation: number of annotations / canvas
     """
-    manifest_list = []
-    annotation_list = []
+    list_manifest = []
+    list_annotationlist = []
 
     if n_manifest > 0:
-        manifest_list = generate_manifest_list(n_manifest, n_canvas)
+        list_manifest = generate_manifest_list(n_manifest, n_canvas)
 
     if (n_annotation > 0):
         id_canvas_list = [
-            canvas["@id"] for manifest in manifest_list
+            canvas["@id"] for manifest in list_manifest
             for canvas in manifest["sequence"][0]
         ]
-        annotation_list = [
-            generate_annotation_list(id_canvas, n_annotation)
+        list_annotationlist = [
+            generate_annotationlist(id_canvas, n_annotation)
             for id_canvas in id_canvas_list
         ]
-    return manifest_list, annotation_list
+    return list_manifest, list_annotationlist
 
