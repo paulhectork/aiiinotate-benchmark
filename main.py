@@ -1,8 +1,6 @@
 import argparse
 
-from src.adapter_aiiinotate import AdapterAiiinotate
-from src.adapter_sas import AdapterSas
-from src.benchmark import Benchmark
+from src.runner import runner
 
 parser = argparse.ArgumentParser(
     prog="AiiinotateBenchmark",
@@ -22,17 +20,4 @@ parser.add_argument(
 
 if __name__ == "__main__":
     args = parser.parse_args()
-
-    if args.server == "aiiinotate":
-        adapter = AdapterAiiinotate(args.endpoint)
-    else:
-        adapter = AdapterSas(args.endpoint)
-
-    Benchmark(adapter, [
-        [1000, 1000],
-        [1000, 10000],
-        [10000, 10000],
-        [10000, 100000],
-        [100000, 100000],
-        [1000000, 1000000],
-    ])
+    runner(args.server, args.endpoint)

@@ -54,6 +54,6 @@ class Benchmark:
         finally:
             self.step_current = None
 
-    def benchmark(self):
+    def run(self):
         for step in self.steps:
             self.step(step)

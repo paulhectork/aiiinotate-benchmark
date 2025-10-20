@@ -14,5 +14,18 @@ def read_json(fp: Path) -> Dict:
     with open(fp, mode="r", encoding="utf-8") as fh:
         return json.load(fh)
 
-def pprint(jsonlike: Dict|List) -> None:
-    print(json.dumps(jsonlike, indent=2))
+def pprint(jsonlike: Dict|List, maxlen=-1) -> None:
+    """
+    pretty-print a json-like object, and optionnally print only 'maxlen' lines.
+
+    :param jsonlike: object to print
+    :param maxlen: maximum number of lines to print, or -1 to print all
+    """
+    s = json.dumps(jsonlike, indent=2)
+    s_lines = s.split("\n")
+    s_len = len(s_lines)
+    if (maxlen != -1 and maxlen < s_len):
+        s_keep = round(maxlen/2)  # numbr of start/end lines to keep in `s`
+        s_lines = s_lines[:s_keep] + [f"\n... {s_len - maxlen} LINES OMITTED (TOTAL={s_len} lines) ...\n"] + s_lines[-s_keep:]
+        s = "\n".join(s_lines)
+    print(s)
