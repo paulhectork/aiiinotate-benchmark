@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Generator
 from uuid import uuid4
 import random
 import string
@@ -59,36 +59,36 @@ def generate_manifest(n_canvas:int=1000) -> Dict:
     manifest["sequences"][0]["canvases"] = generate_canvases(n_canvas)
     return manifest
 
-def generate_manifests(n_manifest:int=1000, n_canvas:int=1000) -> List[Dict]:
-    list_manifest = []
-    for _ in tqdm(range(n_manifest), desc=f"generating {n_manifest} manifests with {n_canvas} canvases"):
-        list_manifest.append(generate_manifest(n_canvas))
-    return list_manifest
+def generate_manifests(n_manifest:int=1000, n_canvas:int=1000) -> Generator[Dict, Tuple[int,int], None]:
+    # for _ in tqdm(range(n_manifest), desc=f"generating {n_manifest} manifests with {n_canvas} canvases"):
+    for _ in range(n_manifest):
+        yield generate_manifest(n_canvas)
+    return
 
-def generate_annotation_lists(list_id_canvas: List[str], n_annotation:int=100) -> List[Dict]:
-    list_annotation_list = []
+# TODO: find a way to pass list_id_canvas or change code.
+def generate_annotation_lists(list_id_canvas: List[str], n_annotation:int=100) -> Generator[Dict, Tuple[List[str], int], None]:
     for id_canvas in tqdm(list_id_canvas, desc=f"generating {len(list_id_canvas)} annotation lists with {n_annotation} annotations each"):
-        list_annotation_list.append(generate_annotation_list(id_canvas, n_annotation))
-    return list_annotation_list
+        yield generate_annotation_list(id_canvas, n_annotation)
+    return
 
-def generate_all(n_manifest:int=1000, n_canvas:int=1000, n_annotation:int=100) -> Tuple[List[Dict], List[Dict]]:
-    """
-    :param n_manifest: number of manifests to generate
-    :param n_canvas: number of canvases / manifest
-    :param n_annotation: number of annotations / canvas
-    """
-    list_manifest = []
-    list_annotation_list = []
-
-    if n_manifest > 0:
-        list_manifest = generate_manifests(n_manifest, n_canvas)
-
-    if (n_annotation > 0):
-        list_id_canvas = [
-            canvas["@id"]
-            for manifest in list_manifest
-            for canvas in manifest["sequences"][0]["canvases"]
-        ]
-        list_annotation_list = generate_annotation_lists(list_id_canvas, n_annotation)
-    return list_manifest, list_annotation_list
+# def generate_all(n_manifest:int=1000, n_canvas:int=1000, n_annotation:int=100) -> Tuple[List[Dict], List[Dict]]:
+#     """
+#     :param n_manifest: number of manifests to generate
+#     :param n_canvas: number of canvases / manifest
+#     :param n_annotation: number of annotations / canvas
+#     """
+#     list_manifest = []
+#     list_annotation_list = []
+#
+#     if n_manifest > 0:
+#         list_manifest = generate_manifests(n_manifest, n_canvas)
+#
+#     if (n_annotation > 0):
+#         list_id_canvas = [
+#             canvas["@id"]
+#             for manifest in list_manifest
+#             for canvas in manifest["sequences"][0]["canvases"]
+#         ]
+#         list_annotation_list = generate_annotation_lists(list_id_canvas, n_annotation)
+#     return list_manifest, list_annotation_list
 

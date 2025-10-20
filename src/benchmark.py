@@ -1,7 +1,9 @@
 import requests
 from typing import List, Tuple, Dict
 
-from .generate import generate_all
+from tqdm import tqdm
+
+from .generate import generate_manifests
 from .adapter_core import AdapterCore
 
 
@@ -47,8 +49,7 @@ class Benchmark:
         try:
             self.step_current = step
             n_manifest, n_canvas = step
-            list_manifest, list_annotationlist = generate_all(n_manifest, n_canvas, self.n_annotation)
-            for manifest in list_manifest:
+            for manifest in tqdm(generate_manifests(n_manifest, n_canvas), total=n_manifest, desc=f"inserting {n_manifest} manifests with {n_canvas} canvases"):
                 self.adapter.insert_manifest(manifest)
 
         finally:

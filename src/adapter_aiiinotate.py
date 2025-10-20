@@ -3,6 +3,7 @@ from typing import Dict, List, Tuple
 import requests
 
 from .adapter_core import AdapterCore
+from .utils import pprint
 
 
 class AdapterAiiinotate(AdapterCore):
@@ -14,9 +15,10 @@ class AdapterAiiinotate(AdapterCore):
         """insert a single manifest"""
         r = requests.post(
             f"{self.endpoint}/manifests/2/create",
-            data=manifest
+            json=manifest
         )
-
+        pprint(r.json())
+        return
 
     def insert_annotation_list(self, annotation_list: Dict):
         """insert an AnnotationList"""
