@@ -15,6 +15,7 @@ git clone https://github.com/paulhectork/aiiinotate-benchmark.git
 2. create `.env.aiiinotate` based on `.env.aiiinotate.template` 
     - for the moment, there is only manual edition. 
     - no need for the database or anything to exist
+    - do not use a pre-existing database ! this will insert tons of data.
 
 3. setup (creates a venv and sets up aiiinotate)
 
