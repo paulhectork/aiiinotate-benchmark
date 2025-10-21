@@ -28,7 +28,11 @@ class AdapterAiiinotate(AdapterCore):
 
     def insert_annotation_list(self, annotation_list: Dict):
         """insert an AnnotationList"""
-        raise NotImplementedError("AdapterCore.insert_annotation_list")
+        r = requests.post(
+            f"{self.endpoint}/annotations/2/createMany",
+            json=annotation_list
+        )
+        pprint(r.json(), 50)
 
     # TODO delete ?
     def get_manifest(self):

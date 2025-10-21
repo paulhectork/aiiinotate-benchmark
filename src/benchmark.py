@@ -1,3 +1,4 @@
+import random
 from typing import List, Tuple, Dict
 
 import requests
@@ -50,7 +51,7 @@ class Benchmark:
             self.step_current = step
             n_manifest, n_canvas = step
 
-            # insert dummy manifests
+            # insert manifests
             id_canvas_list = mt_insert_manifests(
                 func_insert=self.adapter.insert_manifest,
                 n=n_manifest,
@@ -59,17 +60,21 @@ class Benchmark:
                 n_manifest=n_manifest,
                 n_canvas=n_canvas,
             )
+            assert len(id_canvas_list) != 0
 
-            # get the @ids of canvases on which we want to insert annotations
-            # self.adapter.get_id_canvas_list(n_canvas)
-            id_manifest_list = self.adapter.get_id_manifest_list()
+            # insert annotations.
+            # first, we randomly sample `id_canvas_list` to select the canvases on which we'll work.
+            # NOTE: id_canvas_list MUST be sampled here (and not in a worker thread) to avoid the same canvas to be sampled twice in separate threads
+            id_canvas_list = random.sample(
+                id_canvas_list,
+                round(len(id_canvas_list) * self.ratio)
+            )
             mt_insert_annotations(
                 func_insert=self.adapter.insert_annotation_list,
                 data=id_canvas_list,
-                ratio=self.ratio,
                 n_annotation=self.n_annotation,
                 threads=self.threads,
-                pbar_desc=f"inserting {self.n_annotation} annotations on {self.ratio*100}% of canvases on {len(id_manifest_list)} manifests (threads={self.threads})"
+                pbar_desc=f"inserting {self.n_annotation} annotations on {self.ratio*100}% of canvases on {n_manifest} manifests (threads={self.threads})"
             )
 
         finally:

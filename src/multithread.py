@@ -82,6 +82,9 @@ def multithread(func) -> Callable:
         # we pass to `pool`
         # 1. a function that, for each thread, applies the kwargs `kw` to `f`
         # 2. an array of (f, kw), with `f` the function to be executed by each thread and `kw` the kwargs passed to each thread.
+        id_list = []
+        success = 0
+        error = 0
         with ThreadPool(threads) as pool:
             #NOTE: each thread should return [int,int, Optional[List[str]]]:
             # - number of successful inserts,
@@ -89,9 +92,6 @@ def multithread(func) -> Callable:
             # - optional list of inserted data (i.e., inserted canvas IDs when inserting manifests)
             r = pool.starmap(multithread_wrapper, pool_kwargs)
             # group results: r contains 1 item / thread => combine
-            id_list = []
-            success = 0
-            error = 0
             for el in r:
                 success += el[0]
                 error += el[1]
@@ -145,37 +145,28 @@ def mt_insert_manifests(
             id_canvas_list += _id_canvas_list
     return success, error, id_canvas_list
 
-
 @multithread
 def mt_insert_annotations(
     func_insert: Callable,
     data: List[str],
-    ratio: float,
     n_annotation: int,
     lock: Lock,
     pbar: tqdm,
     **kwargs
 ):
     """
-    insert annotations. to insert an annotation list, we need to know its target @id, so
-    the insertion is a bit convoluted: 1st, we take all canvas ids returned by `mt_insert_manifests`,
-    then sample which canvases to insert annotations on, finally, we insert annotations on some of those canvases.
+    'data' contains canvas IDs. insert 'n_annotation' per canvas whose id is in 'data'.
 
     :func_insert: Callable - function to insert an annotation list on one canvas_id
     :data: List[str] - list of canvas ids inserted by `mt_insert_manifests`
-    :ratio: float - 0..1, ratio of canvases in the manifest on which we will insert annotations
     :n_annotation: int - number of annotations / canvas
     :lock: Lock - for shared memory
     :pbar: tqdm - the process bar, to update it in the parent process.
     """
-    assert 0 < ratio and ratio < 1
-
     success = 0
     error = 0
 
-    n_canvas = round(len(data) * ratio)  # number of canvases to process
-    id_canvas_list = random.sample(data, n_canvas)
-
+    id_canvas_list = data
     for id_canvas in id_canvas_list:
         r = func_insert(generate_annotation_list(
             id_canvas, n_annotation

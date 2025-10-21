@@ -26,7 +26,13 @@ class AdapterSas(AdapterCore):
 
     def insert_annotation_list(self, annotation_list: Dict):
         """insert an AnnotationList"""
-        raise NotImplementedError("AdapterCore.insert_annotation_list")
+        r = requests.post(
+            f"{self.endpoint}/annotation/populate",
+            json=annotation_list
+        )
+        print(r.status_code)
+        print(r.text)
+        raise NotImplementedError()
 
     # TODO delete ?
     def get_manifest(self):

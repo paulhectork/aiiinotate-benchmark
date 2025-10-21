@@ -30,11 +30,31 @@ def pprint(jsonlike: Dict|List, maxlen=-1) -> None:
         s = "\n".join(s_lines)
     print(s)
 
-def get_manifest_short_id(id_manifest:str) -> str:
-    # manifest URI pattern: {scheme}://{host}/{prefix}/{identifier}/manifest
-    # => get 'identifier'
-    return id_manifest.split("/")[-2]
+def get_manifest_short_id(iiif_uri:str) -> str:
+    """
+    extract {identifier} from the following IIIF 2.x URIs:
 
+    Collection 	             {scheme}://{host}/{prefix}/collection/{name}
+    Manifest 	             {scheme}://{host}/{prefix}/{identifier}/manifest
+    Sequence 	             {scheme}://{host}/{prefix}/{identifier}/sequence/{name}
+    Canvas 	                 {scheme}://{host}/{prefix}/{identifier}/canvas/{name}
+    Annotation (incl images) {scheme}://{host}/{prefix}/{identifier}/annotation/{name}
+    AnnotationList           {scheme}://{host}/{prefix}/{identifier}/list/{name}
+    Range 	                 {scheme}://{host}/{prefix}/{identifier}/range/{name}
+    Layer 	                 {scheme}://{host}/{prefix}/{identifier}/layer/{name}
+    Content 	             {scheme}://{host}/{prefix}/{identifier}/res/{name}.{format}
+    """
+    keywords = ["manifest", "manifest.json", "sequence", "canvas", "annotation", "list", "range", "layer", "res"]
+    iiif_uri_arr = iiif_uri.split("/")
+    id_short = ""
+    for kw in keywords:
+        if kw in iiif_uri_arr:
+            id_short = iiif_uri_arr[ iiif_uri_arr.index(kw) -1 ]
+            print(id_short)
+            break
+    if id_short == "":
+        raise ValueError(f"could not extract a manifest short ID from '{iiif_uri}'")
+    return id_short
 
 def get_canvas_ids(manifest: Dict) -> List[Optional[str]]:
     return [ c["@id"] for c in manifest["sequences"][0]["canvases"] ]

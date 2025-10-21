@@ -7,7 +7,7 @@ import string
 
 from tqdm import tqdm
 
-from .utils import PATH_CANVAS_2_TEMPLATE, PATH_MANIFEST_2_TEMPLATE, PATH_ANNOTATION_2_TEMPLATE, read_json, pprint
+from .utils import PATH_CANVAS_2_TEMPLATE, PATH_MANIFEST_2_TEMPLATE, PATH_ANNOTATION_2_TEMPLATE, read_json, pprint, get_manifest_short_id
 
 
 # NOTE: since we generate fake "@id"s the benchmark for aiiinotate won't be truthful
@@ -29,21 +29,38 @@ def mkstr():
     return uuid4()  # NOTE: ~25 it/s
 
 
-def generate_annotation(id_canvas:str) -> Dict:
+def generate_annotation(id_manifest_short: str, id_canvas:str) -> Dict:
     annotation = deepcopy(annotation_2_template)
-    annotation["@id"] = f"http://aikon.enpc.fr/sas/annotation/id_{mkstr()}"
+    annotation["@id"] = f"http://aikon.enpc.fr/sas/{id_manifest_short}/annotation/id_{mkstr()}"
     annotation["on"] = id_canvas
     return annotation
 
 def generate_annotation_list(id_canvas, n_annotations:int) -> Dict:
     """generate an annotationlist on canvas `id_canvas` with `n` annotations"""
-    #TODO
-    return {}
+    # AnnotationList URI: {scheme}://{host}/{prefix}/{identifier}/list/{name}
+    id_manifest_short = get_manifest_short_id(id_canvas)
+    pprint({
+        "@context": "http://iiif.io/api/presentation/2/context.json",
+        "@type": "sc:AnnotationList",
+        "@id": f"http://aikon.enpc.fr/sas/{id_manifest_short}/list/l_{uuid4()}",
+        "resources": [
+            generate_annotation(id_manifest_short, id_canvas)
+        ]
+    })
+    return {
+        "@context": "http://iiif.io/api/presentation/2/context.json",
+        "@type": "sc:AnnotationList",
+        "@id": f"http://aikon.enpc.fr/sas/{id_manifest_short}/list/l_{uuid4()}",
+        "resources": [
+            generate_annotation(id_manifest_short, id_canvas)
+            for _ in range(n_annotations)
+        ]
+    }
 
 def generate_canvas(id_manifest:str) -> Dict:
     canvas = deepcopy(canvas_2_template)
     folio = f"f_{mkstr()}"
-    id_canvas = id_manifest.replace("/manifest.json", "") + f"/{folio}"
+    id_canvas = id_manifest.replace("/manifest.json", "") + f"/canvas/{folio}"
     id_img = f"{id_canvas}/full/full/0/native.jpg"
     canvas["@id"] = id_canvas
     canvas["images"][0]["@id"] = id_img
