@@ -29,14 +29,32 @@ class AdapterCore:
         """insert an AnnotationList"""
         raise NotImplementedError("AdapterCore.insert_annotation_list")
 
-    # TODO delete ?
-    def read_manifest(self):
+    def get_manifest(self):
         """read a single manifest"""
-        raise NotImplementedError("AdapterCore.read_manifest")
+        raise NotImplementedError("AdapterCore.get_manifest")
 
-    def read_annotation_list(self):
+    def get_manifest_collection(self) -> Dict:
+        """return the collection of manifests"""
+        raise NotImplementedError("AdapterCore.get_manifest_collection")
+
+    def get_manifest_ids(self) -> List[str]:
+        coll = self.get_manifest_collection()
+        return [
+            m["@id"] for m in coll["members"]
+            if m["@type"] == "sc:Manifest"
+        ]
+
+    def get_canvas_ids(self, n_canvas) -> List[str]:
+        """
+        return a list of `n_canvas` canvas ids randomly selected from all the manifests inserted.
+        """
+        manifest_ids = self.get_manifest_ids()
+        print(manifest_ids)
+        return []
+
+    def get_annotation_list(self):
         """read annotations into an annotationList ('search' route ?)"""
-        raise NotImplementedError("AdapterCore.read_annotation_list")
+        raise NotImplementedError("AdapterCore.get_annotation_list")
 
     def delete_manifest(self, id_manifest: str):
         """delete an annotation"""
@@ -53,4 +71,5 @@ class AdapterCore:
     def update_manifest(self, id_manifest):
         """update an annotation"""
         raise NotImplementedError("AdapterCore.update_manifest")
+
 

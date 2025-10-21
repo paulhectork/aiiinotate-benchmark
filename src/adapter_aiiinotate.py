@@ -9,7 +9,6 @@ from .utils import pprint
 class AdapterAiiinotate(AdapterCore):
     def __init__(self, endpoint):
         super().__init__(endpoint)
-        self.ran = 0
         return
 
     def insert_manifest(self, manifest: Dict) -> int:
@@ -26,27 +25,24 @@ class AdapterAiiinotate(AdapterCore):
             and r_data["insertedCount"] > 0
             else 0
         )
-        # print("_" * 100)
-        # print(r.url)
-        # pprint(r.json(), 100)
-        # print("_" * 100)
-
-        # self.ran += 1
-        # if self.ran > 5:
-        #     exit()
 
     def insert_annotation_list(self, annotation_list: Dict):
         """insert an AnnotationList"""
         raise NotImplementedError("AdapterCore.insert_annotation_list")
 
     # TODO delete ?
-    def read_manifest(self):
+    def get_manifest(self):
         """read a single manifest"""
-        raise NotImplementedError("AdapterCore.read_manifest")
+        raise NotImplementedError("AdapterCore.get_manifest")
 
-    def read_annotation_list(self):
+    def get_manifest_collection(self) -> Dict:
+        """return the collection of manifests"""
+        r = requests.get(f"{self.endpoint}/manifests/2")
+        return r.json()
+
+    def get_annotation_list(self):
         """read annotations into an annotationList ('search' route ?)"""
-        raise NotImplementedError("AdapterCore.read_annotation_list")
+        raise NotImplementedError("AdapterCore.get_annotation_list")
 
     def delete_manifest(self, id_manifest: str):
         """delete an annotation"""

@@ -1,28 +1,44 @@
 from typing import Dict, List, Tuple
 
+import requests
+
 from .adapter_core import AdapterCore
 
 class AdapterSas(AdapterCore):
     def __init__(self, endpoint):
-        self.endpoint = endpoint
+        super().__init__(endpoint)
         return
 
     def insert_manifest(self, manifest: Dict):
         """insert a single manifest"""
-        raise NotImplementedError("AdapterCore.insert_manifest")
+        r = requests.post(
+            f"{self.endpoint}/manifests",
+            json=manifest
+        )
+        r_json = r.json()  # { loaded: <manifestId> }
+        return (
+            1 if "loaded" in r_json.keys()
+            and len(r_json["loaded"]) > 1
+            else 0
+        )
 
     def insert_annotation_list(self, annotation_list: Dict):
         """insert an AnnotationList"""
         raise NotImplementedError("AdapterCore.insert_annotation_list")
 
     # TODO delete ?
-    def read_manifest(self):
+    def get_manifest(self):
         """read a single manifest"""
-        raise NotImplementedError("AdapterCore.read_manifest")
+        raise NotImplementedError("AdapterCore.get_manifest")
 
-    def read_annotation_list(self):
+    def get_manifest_collection(self) -> Dict:
+        """return the collection of manifests"""
+        r = requests.get(f"{self.endpoint}/manifests")
+        return r.json()
+
+    def get_annotation_list(self):
         """read annotations into an annotationList ('search' route ?)"""
-        raise NotImplementedError("AdapterCore.read_annotation_list")
+        raise NotImplementedError("AdapterCore.get_annotation_list")
 
     def delete_manifest(self, id_manifest: str):
         """delete an annotation"""

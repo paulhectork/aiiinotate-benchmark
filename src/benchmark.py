@@ -60,6 +60,7 @@ class Benchmark:
             )
 
             # get the @ids of canvases on which we want to insert annotations
+            self.adapter.get_canvas_ids(n_canvas)
 
         finally:
             self.step_current = None
