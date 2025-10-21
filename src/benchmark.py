@@ -118,7 +118,7 @@ class Benchmark:
         self.adapter = adapter
         self.steps = steps
         self.step_current = None
-        self.threads = 100
+        self.threads = 20
         self.n_annotation = 1000  # number of annotations per canvas.
 
     def step(self, step):

@@ -1,5 +1,7 @@
 from typing import List, Dict, Tuple, Generator
+from copy import deepcopy
 from uuid import uuid4
+
 import random
 import string
 
@@ -28,7 +30,7 @@ def mkstr():
 
 
 def generate_annotation(id_canvas:str) -> Dict:
-    annotation = annotation_2_template
+    annotation = deepcopy(annotation_2_template)
     annotation["@id"] = f"http://aikon.enpc.fr/sas/annotation/id_{mkstr()}"
     annotation["on"] = id_canvas
     return annotation
@@ -39,7 +41,7 @@ def generate_annotation_list(id_canvas, n_annotations:int) -> Dict:
     return {}
 
 def generate_canvas(id_manifest:str) -> Dict:
-    canvas = canvas_2_template
+    canvas = deepcopy(canvas_2_template)
     folio = f"f_{mkstr()}"
     id_canvas = id_manifest.replace("/manifest.json", "") + f"/{folio}"
     id_img = f"{id_canvas}/full/full/0/native.jpg"
@@ -54,7 +56,7 @@ def generate_canvases(id_manifest:str, n_canvas=1000) -> List[Dict]:
     ]
 
 def generate_manifest(n_canvas:int=1000) -> Dict:
-    manifest = manifest_2_template
+    manifest = deepcopy(manifest_2_template)
     id_manifest = f"https://gallica.bnf.fr/iiif/ark:/12148/{mkstr()}/manifest.json"
     manifest["@id"] = id_manifest
     manifest["sequences"][0]["canvases"] = generate_canvases(id_manifest, n_canvas)
