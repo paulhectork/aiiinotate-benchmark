@@ -31,7 +31,7 @@ you're done:)
 
 benchmarks are done using a CLI. aiiinotate and SAS are benchmarked independently.
 
-### aiiinotate
+### Aiiinotate
 
 1. in one terminal, **start aiiinotate** (unecessary if benchmarking a remote aiiinotate instance that is aldready running)
 
