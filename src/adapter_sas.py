@@ -1,15 +1,16 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import requests
 
 from .adapter_core import AdapterCore
+from .utils import get_canvas_ids
 
 class AdapterSas(AdapterCore):
     def __init__(self, endpoint):
         super().__init__(endpoint)
         return
 
-    def insert_manifest(self, manifest: Dict):
+    def insert_manifest(self, manifest: Dict) -> List[Optional[str]]:
         """insert a single manifest"""
         r = requests.post(
             f"{self.endpoint}/manifests",
@@ -17,9 +18,10 @@ class AdapterSas(AdapterCore):
         )
         r_json = r.json()  # { loaded: <manifestId> }
         return (
-            1 if "loaded" in r_json.keys()
+            get_canvas_ids(manifest)
+            if "loaded" in r_json.keys()
             and len(r_json["loaded"]) > 1
-            else 0
+            else []
         )
 
     def insert_annotation_list(self, annotation_list: Dict):

@@ -1,7 +1,7 @@
 import json
 import pathlib
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 PATH_SRC = pathlib.Path(__file__).parent.resolve()
 PATH_ROOT = PATH_SRC.parent.resolve()
@@ -29,3 +29,12 @@ def pprint(jsonlike: Dict|List, maxlen=-1) -> None:
         s_lines = s_lines[:s_keep] + [f"\n... {s_len - maxlen} LINES OMITTED (TOTAL={s_len} lines) ...\n"] + s_lines[-s_keep:]
         s = "\n".join(s_lines)
     print(s)
+
+def get_manifest_short_id(id_manifest:str) -> str:
+    # manifest URI pattern: {scheme}://{host}/{prefix}/{identifier}/manifest
+    # => get 'identifier'
+    return id_manifest.split("/")[-2]
+
+
+def get_canvas_ids(manifest: Dict) -> List[Optional[str]]:
+    return [ c["@id"] for c in manifest["sequences"][0]["canvases"] ]

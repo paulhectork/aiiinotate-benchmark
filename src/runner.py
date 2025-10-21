@@ -10,6 +10,7 @@ def runner(server: str, endpoint: str) -> None:
         adapter = AdapterSas(endpoint)
 
     Benchmark(adapter, [
+        [100, 100],
         [1000, 1000],
         [1000, 10000],
         [10000, 10000],

@@ -37,20 +37,12 @@ class AdapterCore:
         """return the collection of manifests"""
         raise NotImplementedError("AdapterCore.get_manifest_collection")
 
-    def get_manifest_ids(self) -> List[str]:
+    def get_id_manifest_list(self) -> List[str]:
         coll = self.get_manifest_collection()
         return [
             m["@id"] for m in coll["members"]
             if m["@type"] == "sc:Manifest"
         ]
-
-    def get_canvas_ids(self, n_canvas) -> List[str]:
-        """
-        return a list of `n_canvas` canvas ids randomly selected from all the manifests inserted.
-        """
-        manifest_ids = self.get_manifest_ids()
-        print(manifest_ids)
-        return []
 
     def get_annotation_list(self):
         """read annotations into an annotationList ('search' route ?)"""

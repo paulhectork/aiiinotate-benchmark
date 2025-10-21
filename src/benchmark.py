@@ -3,7 +3,7 @@ from typing import List, Tuple, Dict
 import requests
 
 from .adapter_core import AdapterCore
-from .multithread import insert_manifests
+from .multithread import mt_insert_manifests, mt_insert_annotations
 
 
 def validate_steps(steps) -> None:
@@ -42,6 +42,7 @@ class Benchmark:
         self.steps = steps
         self.step_current = None
         self.threads = 20
+        self.ratio = 0.01  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases will have annotations.
         self.n_annotation = 1000  # number of annotations per canvas.
 
     def step(self, step):
@@ -50,8 +51,8 @@ class Benchmark:
             n_manifest, n_canvas = step
 
             # insert dummy manifests
-            insert_manifests(
-                insert_func=self.adapter.insert_manifest,
+            id_canvas_list = mt_insert_manifests(
+                func_insert=self.adapter.insert_manifest,
                 n=n_manifest,
                 threads=self.threads,
                 pbar_desc=f"inserting {n_manifest} manifests with {n_canvas} canvases (threads={self.threads})",
@@ -60,7 +61,16 @@ class Benchmark:
             )
 
             # get the @ids of canvases on which we want to insert annotations
-            self.adapter.get_canvas_ids(n_canvas)
+            # self.adapter.get_id_canvas_list(n_canvas)
+            id_manifest_list = self.adapter.get_id_manifest_list()
+            mt_insert_annotations(
+                func_insert=self.adapter.insert_annotation_list,
+                data=id_canvas_list,
+                ratio=self.ratio,
+                n_annotation=self.n_annotation,
+                threads=self.threads,
+                pbar_desc=f"inserting {self.n_annotation} annotations on {self.ratio*100}% of canvases on {len(id_manifest_list)} manifests (threads={self.threads})"
+            )
 
         finally:
             self.step_current = None

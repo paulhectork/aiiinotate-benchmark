@@ -1,9 +1,9 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import requests
 
 from .adapter_core import AdapterCore
-from .utils import pprint
+from .utils import pprint, get_manifest_short_id, get_canvas_ids
 
 
 class AdapterAiiinotate(AdapterCore):
@@ -11,19 +11,19 @@ class AdapterAiiinotate(AdapterCore):
         super().__init__(endpoint)
         return
 
-    def insert_manifest(self, manifest: Dict) -> int:
+    def insert_manifest(self, manifest: Dict) -> List[Optional[str]]:
         """insert a single manifest"""
         r = requests.post(
             f"{self.endpoint}/manifests/2/create",
             json=manifest
         )
         r_data = r.json()
-        # returns 1 if something has been inserted, 0 otherwise.
+        # returns list of canvas ids if the manifest has been inserted, `[]` otherwise.
         return (
-            1
+            get_canvas_ids(manifest)
             if "insertedCount" in r_data.keys()
             and r_data["insertedCount"] > 0
-            else 0
+            else []
         )
 
     def insert_annotation_list(self, annotation_list: Dict):
