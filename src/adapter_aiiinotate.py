@@ -9,16 +9,31 @@ from .utils import pprint
 class AdapterAiiinotate(AdapterCore):
     def __init__(self, endpoint):
         super().__init__(endpoint)
+        self.ran = 0
         return
 
-    def insert_manifest(self, manifest: Dict):
+    def insert_manifest(self, manifest: Dict) -> int:
         """insert a single manifest"""
         r = requests.post(
             f"{self.endpoint}/manifests/2/create",
             json=manifest
         )
-        pprint(r.json())
-        return
+        r_data = r.json()
+        # returns 1 if something has been inserted, 0 otherwise.
+        return (
+            1
+            if "insertedCount" in r_data.keys()
+            and r_data["insertedCount"] > 0
+            else 0
+        )
+        # print("_" * 100)
+        # print(r.url)
+        # pprint(r.json(), 100)
+        # print("_" * 100)
+
+        # self.ran += 1
+        # if self.ran > 5:
+        #     exit()
 
     def insert_annotation_list(self, annotation_list: Dict):
         """insert an AnnotationList"""

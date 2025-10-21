@@ -38,25 +38,26 @@ def generate_annotation_list(id_canvas, n_annotations:int) -> Dict:
     #TODO
     return {}
 
-def generate_canvas() -> Dict:
+def generate_canvas(id_manifest:str) -> Dict:
     canvas = canvas_2_template
     folio = f"f_{mkstr()}"
-    id_canvas = "/".join(canvas["@id"].split("/")[:-1]) + f"/{folio}"
-    id_img = f"https://gallica.bnf.fr/iiif/ark:/12148/{mkstr()}/{folio}/full/full/0/native.jpg"
+    id_canvas = id_manifest.replace("/manifest.json", "") + f"/{folio}"
+    id_img = f"{id_canvas}/full/full/0/native.jpg"
     canvas["@id"] = id_canvas
     canvas["images"][0]["@id"] = id_img
     canvas["images"][0]["resource"]["service"]["@id"] = id_canvas
     return canvas
 
-def generate_canvases(n_canvas=1000) -> List[Dict]:
+def generate_canvases(id_manifest:str, n_canvas=1000) -> List[Dict]:
     return [
-        generate_canvas() for _ in range(n_canvas)
+        generate_canvas(id_manifest) for _ in range(n_canvas)
     ]
 
 def generate_manifest(n_canvas:int=1000) -> Dict:
     manifest = manifest_2_template
-    manifest["@id"] = "https://gallica.bnf.fr/iiif/ark:/12148/btv1b8490076p/manifest.json"
-    manifest["sequences"][0]["canvases"] = generate_canvases(n_canvas)
+    id_manifest = f"https://gallica.bnf.fr/iiif/ark:/12148/{mkstr()}/manifest.json"
+    manifest["@id"] = id_manifest
+    manifest["sequences"][0]["canvases"] = generate_canvases(id_manifest, n_canvas)
     return manifest
 
 def generate_manifests(n_manifest:int=1000, n_canvas:int=1000) -> Generator[Dict, Tuple[int,int], None]:
@@ -70,25 +71,3 @@ def generate_annotation_lists(list_id_canvas: List[str], n_annotation:int=100) -
     for id_canvas in tqdm(list_id_canvas, desc=f"generating {len(list_id_canvas)} annotation lists with {n_annotation} annotations each"):
         yield generate_annotation_list(id_canvas, n_annotation)
     return
-
-# def generate_all(n_manifest:int=1000, n_canvas:int=1000, n_annotation:int=100) -> Tuple[List[Dict], List[Dict]]:
-#     """
-#     :param n_manifest: number of manifests to generate
-#     :param n_canvas: number of canvases / manifest
-#     :param n_annotation: number of annotations / canvas
-#     """
-#     list_manifest = []
-#     list_annotation_list = []
-#
-#     if n_manifest > 0:
-#         list_manifest = generate_manifests(n_manifest, n_canvas)
-#
-#     if (n_annotation > 0):
-#         list_id_canvas = [
-#             canvas["@id"]
-#             for manifest in list_manifest
-#             for canvas in manifest["sequences"][0]["canvases"]
-#         ]
-#         list_annotation_list = generate_annotation_lists(list_id_canvas, n_annotation)
-#     return list_manifest, list_annotation_list
-
