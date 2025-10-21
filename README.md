@@ -48,7 +48,7 @@ python main.py aiiinotate -e http://localhost:4000  # assuming aiiinotate runs o
 
 ### SAS
 
-1. in one terminal, **start SAS** (same, sip this step if working with a remote, aldready running instance). SAS's default port is `8888`.
+1. in one terminal, **start SAS** (same, skip this step if working with a remote or aldready running instance). SAS's default port is `8888`.
 
 ```bash
 bash run_sas.sh
