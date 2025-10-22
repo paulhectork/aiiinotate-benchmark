@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple, Optional
 import requests
 
 from .adapter_core import AdapterCore
-from .utils import get_canvas_ids
+from .utils import get_canvas_ids, get_manifest_short_id
 
 class AdapterSas(AdapterCore):
     def __init__(self, endpoint):
@@ -28,20 +28,28 @@ class AdapterSas(AdapterCore):
             else []
         )
 
-    def insert_annotation_list(self, annotation_list: Dict):
-        """insert an AnnotationList"""
+    def insert_annotation(self, annotation:Dict):
         r = requests.post(
-            f"{self.endpoint}/annotation/populate",
-            json=annotation_list
+            f"{self.endpoint}/annotation/create",
+            json=annotation
         )
-        print(r.status_code)
-        print(r.text)
-        raise NotImplementedError()
+        return 1 if "@id" in r.json().keys() else 0
 
-    # TODO delete ?
+    #NOTE: for some obscure reason, SAS can take A LOT of time to send a response
+    def insert_annotation_list(self, annotation_list: Dict):
+        """
+        insert an AnnotationList
+        in SAS, you can only create annotations from an annotation list through an HTML page... annotations must be inserted manually
+        => we use self.insert_annotations to insert annotations one by one.
+        """
+        r_all = []
+        for annotation in annotation_list["resources"]:
+            r_all.append(self.insert_annotation(annotation))
+        return 1 if len(set(r_all)) == 1 and r_all[0] == 1 else 0
+
     def get_manifest(self):
         """read a single manifest"""
-        raise NotImplementedError("AdapterSas.get_manifest")
+
 
     def get_manifest_collection(self) -> Dict:
         """return the collection of manifests"""
@@ -54,6 +62,7 @@ class AdapterSas(AdapterCore):
         assert r.status_code == 200
         return r.json()
 
+    # NOTE: this functionnality is not implemented by SAS
     def delete_manifest(self, id_manifest: str):
         """delete an annotation"""
         raise NotImplementedError("AdapterSas.delete_manifest")
@@ -72,6 +81,13 @@ class AdapterSas(AdapterCore):
         for id_annotation in list_id_annotation:
             self.delete_annotation(id_annotation)
         return
+
+    def delete_annotations_for_manifest(self, id_manifest:str):
+        id_manifest = get_manifest_short_id(id_manifest)
+        r = requests.get(f"{self.endpoint}/search-api/${id_manifest}/search")
+        annotation_list = r.json()
+        for annotation in annotation_list["resources"]:
+            self.delete_annotation(annotation["@id"])
 
     def update_annotation(self, id_annotation):
         """update an annotation"""

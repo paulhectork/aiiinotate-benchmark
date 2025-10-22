@@ -84,7 +84,7 @@ class Benchmark:
         d_insert_manifest = e-s
         assert len(list_id_canvas) != 0
 
-        # insert annotatiodatans.
+        # insert annotations
         # first, we randomly sample `list_id_canvas` to select the canvases on which we'll work.
         # NOTE: list_id_canvas MUST be sampled here (and not in a worker thread) to avoid the same canvas to be sampled twice in separate threads
         list_id_canvas_full = list_id_canvas
@@ -106,16 +106,16 @@ class Benchmark:
         assert len(list_id_canvas_sample) == len(list_id_canvas_annotations)
         return d_insert_manifest, d_insert_annotation, list_id_canvas_full, list_id_canvas_annotations
 
-    def purge(self, id_canvas_annotations: List[str]):
+    def purge(self, list_id_canvas_annotations: List[str] = []):
         """
         at the end of a step, delete all contents from a db.
         unfortunately, SAS doesn't provide a route to delete manifests, so for SAS we just delete annotations
         """
+        list_id_manifest = self.adapter.get_id_manifest_list()
         if self.adapter.server_name == "Aiiinotate":
-            list_id_manifest = self.adapter.get_id_manifest_list()
             mt_delete(
                 data=list_id_manifest,
-                func=self.adapter.delete_annotations_for_manifest,  # pyright: ignore
+                func=self.adapter.delete_annotations_for_manifest,
                 threads=self.threads,
                 pbar_desc=f"deleting all annotations from {len(list_id_manifest)} manifests (threads={self.threads})"
             )
@@ -127,12 +127,21 @@ class Benchmark:
             )
         else:
             #NOTE: with SAS, we can't delete manifests, so we just delete annotations.
-            mt_delete(
-                data=id_canvas_annotations,
-                func=self.adapter.delete_annotations_for_canvas,  # pyright: ignore
-                threads=self.threads,
-                pbar_desc=f"deleting all annotations from {len(id_canvas_annotations)} canvases (threads={self.threads})"
-            )
+            if len(list_id_canvas_annotations):
+                mt_delete(
+                    data=list_id_canvas_annotations,
+                    func=self.adapter.delete_annotations_for_canvas,  # pyright: ignore
+                    threads=self.threads,
+                    pbar_desc=f"deleting all annotations from {len(list_id_canvas_annotations)} canvases (threads={self.threads})"
+                )
+            # actually this might always be faster than `list_id_canvas_annotations`.
+            else:
+                mt_delete(
+                    data=list_id_manifest,
+                    func=self.adapter.delete_annotations_for_manifest,
+                    threads=self.threads,
+                    pbar_desc=f"deleting all annotations from {len(list_id_manifest)} manifests (threads={self.threads})"
+                )
         return
 
     def step(self, idx_step:int, step):
