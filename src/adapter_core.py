@@ -14,12 +14,17 @@ def validate_endpoint(endpoint: str) -> str:
 
 
 class AdapterCore:
+
     def __init__(self, endpoint):
         """
         :param endpoint: full endpoint (including the service: 'http://' and port, if on localhost)
         """
         self.endpoint = validate_endpoint(endpoint)
         return
+
+    @property
+    def server_name(self):
+        raise NotImplementedError("AdapterCore.server_name")
 
     def insert_manifest(self, manifest: Dict):
         """insert a single manifest"""

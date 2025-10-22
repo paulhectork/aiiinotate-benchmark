@@ -10,6 +10,10 @@ class AdapterSas(AdapterCore):
         super().__init__(endpoint)
         return
 
+    @property
+    def server_name(self):
+        return "SimpleAnnotationServer"
+
     def insert_manifest(self, manifest: Dict) -> List[Optional[str]]:
         """insert a single manifest"""
         r = requests.post(
