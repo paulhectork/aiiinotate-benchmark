@@ -6,7 +6,7 @@ import requests
 
 from .utils import pprint
 from .adapter_core import AdapterCore
-from .multithread import mt_insert_manifests, mt_insert_annotations
+from .multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
 
 
 def validate_steps(steps) -> None:
@@ -72,8 +72,8 @@ class Benchmark:
         # insert manifests
         s = timer()
         # `mt_insert_manifests` returns a list of all canvas IDs of all the manifests inserted.
-        id_canvas_list = mt_insert_manifests(
-            func_insert=self.adapter.insert_manifest,
+        list_id_canvas = mt_insert_manifests(
+            func=self.adapter.insert_manifest,
             n=n_manifest,
             threads=self.threads,
             pbar_desc=f"inserting {n_manifest} manifests with {n_canvas} canvases (threads={self.threads})",
@@ -82,31 +82,53 @@ class Benchmark:
         )
         e = timer()
         d_insert_manifest = e-s
-        assert len(id_canvas_list) != 0
+        assert len(list_id_canvas) != 0
 
-        # insert annotations.
-        # first, we randomly sample `id_canvas_list` to select the canvases on which we'll work.
-        # NOTE: id_canvas_list MUST be sampled here (and not in a worker thread) to avoid the same canvas to be sampled twice in separate threads
-        id_canvas_list_full = id_canvas_list
-        id_canvas_list_sample = random.sample(
-            id_canvas_list,
-            round(len(id_canvas_list) * self.ratio)
+        # insert annotatiodatans.
+        # first, we randomly sample `list_id_canvas` to select the canvases on which we'll work.
+        # NOTE: list_id_canvas MUST be sampled here (and not in a worker thread) to avoid the same canvas to be sampled twice in separate threads
+        list_id_canvas_full = list_id_canvas
+        list_id_canvas_sample = random.sample(
+            list_id_canvas,
+            round(len(list_id_canvas) * self.ratio)
         )
         s = timer()
-        # `mt_insert_annotations` returns the list of canvas IDs on which annotations were inserted (should be the same as `id_canvas_list_sampled`)
-        id_canvas_list_annotations = mt_insert_annotations(
-            func_insert=self.adapter.insert_annotation_list,
-            data=id_canvas_list,
+        # `mt_insert_annotations` returns the list of canvas IDs on which annotations were inserted (should be the same as `list_id_canvas_sampled`)
+        list_id_canvas_annotations = mt_insert_annotations(
+            func=self.adapter.insert_annotation_list,
+            data=list_id_canvas_sample,
             n_annotation=self.n_annotation,
             threads=self.threads,
-            pbar_desc=f"inserting {self.n_annotation * len(id_canvas_list)} annotations on {len(id_canvas_list)} canvases (threads={self.threads})"
+            pbar_desc=f"inserting {self.n_annotation * len(list_id_canvas_sample)} annotations on {len(list_id_canvas)} canvases (threads={self.threads})"
         )
-        assert len(id_canvas_list_sample) == len(id_canvas_list_annotations)
         e = timer()
         d_insert_annotation = e-s
+        assert len(list_id_canvas_sample) == len(list_id_canvas_annotations)
+        return d_insert_manifest, d_insert_annotation, list_id_canvas_full, list_id_canvas_annotations
 
-        return d_insert_manifest, d_insert_annotation, id_canvas_list_full, id_canvas_list_annotations
-
+    def purge(self, id_canvas_annotations: List[str]):
+        """
+        at the end of a step, delete all contents from a db.
+        unfortunately, SAS doesn't provide a route to delete manifests, so for SAS we just delete annotations
+        """
+        if self.adapter.server_name == "Aiiinotate":
+            list_id_manifest = self.adapter.get_id_manifest_list()
+            mt_delete(
+                data=list_id_manifest,
+                func=self.adapter.delete_annotations_for_manifest,  # pyright: ignore
+                threads=self.threads,
+                pbar_desc=f"deleting all annotations from {len(list_id_manifest)} manifests (threads={self.threads})"
+            )
+            #TODO: delete manifests
+        else:
+            #NOTE: with SAS, we can't delete manifests, so we just delete annotations.
+            mt_delete(
+                data=id_canvas_annotations,
+                func=self.adapter.delete_annotations_for_canvas,  # pyright: ignore
+                threads=self.threads,
+                pbar_desc=f"deleting all annotations from {len(id_canvas_annotations)} canvases (threads={self.threads})"
+            )
+        return
 
     def step(self, idx_step:int, step):
         log = {
@@ -114,13 +136,15 @@ class Benchmark:
             "duration_insert_manifest": None,
             "duration_insert_annotation": None,
         }
+        list_id_canvas_annotations = []
         try:
             self.step_current = { "index": idx_step, "data": step }
-            d_insert_manifest, d_insert_annotation, id_canvas_list_full, id_canvas_list_annotations = self.inserts()
+            d_insert_manifest, d_insert_annotation, list_id_canvas_full, list_id_canvas_annotations = self.inserts()
             log["duration_insert_manifest"] = d_insert_manifest
             log["duration_insert_annotation"] = d_insert_annotation
 
         finally:
+            self.purge(list_id_canvas_annotations)
             self.step_current = None
             self.log["results"].append(log)
             pprint(log)

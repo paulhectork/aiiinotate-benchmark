@@ -32,7 +32,7 @@ def multithread(func) -> Callable:
             => to insert manifests, we only need to know `n` (number of manifests). to insert annotations, we need to know the @ids of manifests on which to insert annotations.
         - threads: int, number of threads to use
         - pbar_desc: str, description message for the tqdm progress bar
-        - func_insert: Callable, function to perform the inserts (a member or a descendant of `AdapterCore`)
+        - func: Callable, function to perform the inserts (a member or a descendant of `AdapterCore`)
         - any other kwargs to pass to the wrapped funcion
 
         **kwargs can optionnally contain:
@@ -49,13 +49,24 @@ def multithread(func) -> Callable:
             data = kwargs["data"]
             n = len(data)
             n_per_thread = n // threads  # number of items to process in each thread
+
+            # make a nested list of length `threads`, each sub-list with the same number of items
             # https://stackoverflow.com/a/2231685
-            data = [
+            data: List[List] = [
                 data[i:i+n_per_thread] for i in range(0, n, n_per_thread)
             ]
-            data_shape = [ len(d) for d in data ]
+            # since `n_per_threads` is rounded, it may leave stuff out
+            # => there can be an extra item in `data` with leftovers that could not be split evenly
+            # => append everything extra to the 1st item in data.
+            if len(data) > threads:
+                # all items whose index is > `threads` is left over
+                for leftover in data[threads:]:
+                    data[0].extend(leftover)
+                data = data[:threads]  # keep only the last items.
+            # data_shape = [ len(d) for d in data ]
+            # print(f">>> n={n} threads={threads} len(data)={len(data)} data_shape={data_shape}")
             assert len(data) == threads
-            assert len(set(data_shape)) == 1  # all lists in data are of the same length
+            assert sum(len(d) for d in data) == n
             kwargs["data"] = data
             kwargs["n"] = n_per_thread
 
@@ -84,7 +95,7 @@ def multithread(func) -> Callable:
         # we pass to `pool`
         # 1. a function that, for each thread, applies the kwargs `kw` to `f`
         # 2. an array of (f, kw), with `f` the function to be executed by each thread and `kw` the kwargs passed to each thread.
-        id_list = []
+        list_id = []
         success = 0
         error = 0
         with ThreadPool(threads) as pool:
@@ -98,17 +109,17 @@ def multithread(func) -> Callable:
                 success += el[0]
                 error += el[1]
                 if len(el) == 3:
-                    id_list += el[2]
+                    list_id += el[2]
 
         pbar.close()
         print(f"SUCCESS: {success}, ERROR: {error}")
-        return id_list
+        return list_id
 
     return wrapper
 
 @multithread
 def mt_insert_manifests(
-    func_insert: Callable,
+    func: Callable,
     n: int,
     n_canvas: int,
     lock: Lock,
@@ -118,7 +129,7 @@ def mt_insert_manifests(
     """
     insert manifests in parallel threads
 
-    :param func_insert: Callable - function to use for insert
+    :param func: Callable - function to use for insert
     :param n: int - number of manifests to insert in one thread
     :param n_canvas: int - number of canvases per manifest
     :param loc: threading.Lock - for shared state
@@ -132,24 +143,24 @@ def mt_insert_manifests(
     """
     error = 0
     success = 0
-    id_canvas_list = []
+    list_id_canvas = []
     for _ in range(n):
-        # _id_canvas_list = id of all canvases in the manifest inserted
-        _id_canvas_list = func_insert(generate_manifest(n_canvas))
+        # _list_id_canvas = id of all canvases in the manifest inserted
+        _list_id_canvas = func(generate_manifest(n_canvas))
         # update the tqdm progress bar + track success and errors
         with lock:
             pbar.update(1)
         # record the number of successes and errors.
-        if len(_id_canvas_list) == 0:
+        if len(_list_id_canvas) == 0:
             error += 1
         else:
             success += 1
-            id_canvas_list += _id_canvas_list
-    return success, error, id_canvas_list
+            list_id_canvas += _list_id_canvas
+    return success, error, list_id_canvas
 
 @multithread
 def mt_insert_annotations(
-    func_insert: Callable,
+    func: Callable,
     data: List[str],
     n_annotation: int,
     lock: Lock,
@@ -159,11 +170,11 @@ def mt_insert_annotations(
     """
     'data' contains canvas IDs. insert 'n_annotation' per canvas whose id is in 'data'.
 
-    :func_insert: Callable - function to insert an annotation list on one canvas_id
-    :data: List[str] - list of canvas ids inserted by `mt_insert_manifests`
-    :n_annotation: int - number of annotations / canvas
-    :lock: Lock - for shared memory
-    :pbar: tqdm - the process bar, to update it in the parent process.
+    :func: function to insert an annotation list on one canvas_id
+    :data: list of canvas ids inserted by `mt_insert_manifests`
+    :n_annotation: number of annotations / canvas
+    :lock: for shared memory
+    :pbar: the process bar, to update it in the parent process.
 
     :returns:
         int, int, List[str]
@@ -174,10 +185,10 @@ def mt_insert_annotations(
     success = 0
     error = 0
 
-    id_canvas_list = data
-    id_canvas_list_out = []
-    for id_canvas in id_canvas_list:
-        r = func_insert(generate_annotation_list(
+    list_id_canvas = data
+    list_id_canvas_out = []
+    for id_canvas in list_id_canvas:
+        r = func(generate_annotation_list(
             id_canvas, n_annotation
         ))
         # update tqdm
@@ -186,9 +197,39 @@ def mt_insert_annotations(
         # track errors and successes
         if r == 1:
             success += 1
-            id_canvas_list_out.append(id_canvas)
+            list_id_canvas_out.append(id_canvas)
         else:
             error += 1
 
-    return success, error, id_canvas_list_out
+    return success, error, list_id_canvas_out
+
+@multithread
+def mt_delete(
+    data: List[str],
+    func: Callable,
+    lock: Lock,
+    pbar: tqdm,
+    **kwargs
+) -> Tuple[int,int]:
+    """
+    delete data (annotations or manifests)
+
+    :param data: iterable with the IDs to delete (can be annotations "@id", manifest "@id"... depending on what `func` needs)
+    :param func: function to delete data
+    :param lock: for shared memory
+    :param pbar: the process bar, to update it in the parent process.
+    """
+    success = 0
+    error = 0
+    for _id in data:
+        r = func(_id)
+        with lock:
+            pbar.update(1)
+        if r==1:
+            success += 1
+        else:
+            error += 0
+    return success, error
+
+
 

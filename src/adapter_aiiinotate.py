@@ -52,7 +52,7 @@ class AdapterAiiinotate(AdapterCore):
         r = requests.get(f"{self.endpoint}/manifests/2")
         return r.json()
 
-    def get_annotation_list(self):
+    def get_annotation_list(self, id_canvas:str):
         """read annotations into an annotationList ('search' route ?)"""
         raise NotImplementedError("AdapterCore.get_annotation_list")
 
@@ -63,16 +63,15 @@ class AdapterAiiinotate(AdapterCore):
     def delete_annotation(self, id_annotation: str):
         """delete an annotation"""
         r = requests.delete(f"{self.endpoint}/annotations/2/delete?uri={id_annotation}")
-        print(r.status_code)
-        print(r.json())
-        r_json = r.json()
-        return 1 if r_json["deletedCount"] > 0 else 0
+        return 1 if r.json()["deletedCount"] > 0 else 0
 
-    def delete_annotations_for_manifest(self, id_manifest_short: str):
-        r = requests.delete(f"{self.endpoint}/annotations/2/delete?manifestShortId={id_manifest_short}")
-        print(r.status_code)
-        print(r.json())
-        return
+    def delete_annotations_for_manifest(self, id_manifest: str):
+        """
+        :param id_manifest: the manifest's "@id"
+        """
+        id_manifest = get_manifest_short_id(id_manifest)
+        r = requests.delete(f"{self.endpoint}/annotations/2/delete?manifestShortId={id_manifest}")
+        return 1 if r.json()["deletedCount"] > 0 else 0
 
     def update_annotation(self, id_annotation):
         """update an annotation"""

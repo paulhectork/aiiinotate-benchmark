@@ -48,9 +48,11 @@ class AdapterSas(AdapterCore):
         r = requests.get(f"{self.endpoint}/manifests")
         return r.json()
 
-    def get_annotation_list(self):
+    def get_annotation_list(self, id_canvas: str):
         """read annotations into an annotationList ('search' route ?)"""
-        raise NotImplementedError("AdapterSas.get_annotation_list")
+        r = requests.get(f"{self.endpoint}/annotation/search?uri=${id_canvas}")
+        assert r.status_code == 200
+        return r.json()
 
     def delete_manifest(self, id_manifest: str):
         """delete an annotation"""
@@ -61,6 +63,15 @@ class AdapterSas(AdapterCore):
         r = requests.delete(f"{self.endpoint}/annotation/destroy?uri={id_annotation}")
         print(r.status_code)
         print(r.json())
+
+    def delete_annotations_for_canvas(self, id_canvas:str):
+        annotation_list = self.get_annotation_list(id_canvas)
+        list_id_annotation = [
+            a["@id"] for a in annotation_list["resources"]
+        ]
+        for id_annotation in list_id_annotation:
+            self.delete_annotation(id_annotation)
+        return
 
     def update_annotation(self, id_annotation):
         """update an annotation"""

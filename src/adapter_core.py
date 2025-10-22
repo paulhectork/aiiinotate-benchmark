@@ -49,7 +49,7 @@ class AdapterCore:
             if m["@type"] == "sc:Manifest"
         ]
 
-    def get_annotation_list(self):
+    def get_annotation_list(self, id_canvas: str):
         """read annotations into an annotationList ('search' route ?)"""
         raise NotImplementedError("AdapterCore.get_annotation_list")
 
