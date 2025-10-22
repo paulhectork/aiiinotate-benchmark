@@ -71,6 +71,7 @@ class Benchmark:
 
         # insert manifests
         s = timer()
+        # `mt_insert_manifests` returns a list of all canvas IDs of all the manifests inserted.
         id_canvas_list = mt_insert_manifests(
             func_insert=self.adapter.insert_manifest,
             n=n_manifest,
@@ -86,22 +87,25 @@ class Benchmark:
         # insert annotations.
         # first, we randomly sample `id_canvas_list` to select the canvases on which we'll work.
         # NOTE: id_canvas_list MUST be sampled here (and not in a worker thread) to avoid the same canvas to be sampled twice in separate threads
-        id_canvas_list = random.sample(
+        id_canvas_list_full = id_canvas_list
+        id_canvas_list_sample = random.sample(
             id_canvas_list,
             round(len(id_canvas_list) * self.ratio)
         )
         s = timer()
-        mt_insert_annotations(
+        # `mt_insert_annotations` returns the list of canvas IDs on which annotations were inserted (should be the same as `id_canvas_list_sampled`)
+        id_canvas_list_annotations = mt_insert_annotations(
             func_insert=self.adapter.insert_annotation_list,
             data=id_canvas_list,
             n_annotation=self.n_annotation,
             threads=self.threads,
             pbar_desc=f"inserting {self.n_annotation * len(id_canvas_list)} annotations on {len(id_canvas_list)} canvases (threads={self.threads})"
         )
+        assert len(id_canvas_list_sample) == len(id_canvas_list_annotations)
         e = timer()
         d_insert_annotation = e-s
 
-        return d_insert_manifest, d_insert_annotation
+        return d_insert_manifest, d_insert_annotation, id_canvas_list_full, id_canvas_list_annotations
 
 
     def step(self, idx_step:int, step):
@@ -112,7 +116,7 @@ class Benchmark:
         }
         try:
             self.step_current = { "index": idx_step, "data": step }
-            d_insert_manifest, d_insert_annotation = self.inserts()
+            d_insert_manifest, d_insert_annotation, id_canvas_list_full, id_canvas_list_annotations = self.inserts()
             log["duration_insert_manifest"] = d_insert_manifest
             log["duration_insert_annotation"] = d_insert_annotation
 

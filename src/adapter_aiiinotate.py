@@ -62,7 +62,17 @@ class AdapterAiiinotate(AdapterCore):
 
     def delete_annotation(self, id_annotation: str):
         """delete an annotation"""
-        raise NotImplementedError("AdapterCore.delete_annotation")
+        r = requests.delete(f"{self.endpoint}/annotations/2/delete?uri={id_annotation}")
+        print(r.status_code)
+        print(r.json())
+        r_json = r.json()
+        return 1 if r_json["deletedCount"] > 0 else 0
+
+    def delete_annotations_for_manifest(self, id_manifest_short: str):
+        r = requests.delete(f"{self.endpoint}/annotations/2/delete?manifestShortId={id_manifest_short}")
+        print(r.status_code)
+        print(r.json())
+        return
 
     def update_annotation(self, id_annotation):
         """update an annotation"""

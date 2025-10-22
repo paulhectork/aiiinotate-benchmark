@@ -164,11 +164,18 @@ def mt_insert_annotations(
     :n_annotation: int - number of annotations / canvas
     :lock: Lock - for shared memory
     :pbar: tqdm - the process bar, to update it in the parent process.
+
+    :returns:
+        int, int, List[str]
+        - # of successes in this thread
+        - # of errors in this thread
+        - all the canvas IDs on which annotations were inserted
     """
     success = 0
     error = 0
 
     id_canvas_list = data
+    id_canvas_list_out = []
     for id_canvas in id_canvas_list:
         r = func_insert(generate_annotation_list(
             id_canvas, n_annotation
@@ -179,8 +186,9 @@ def mt_insert_annotations(
         # track errors and successes
         if r == 1:
             success += 1
+            id_canvas_list_out.append(id_canvas)
         else:
             error += 1
 
-    return success, error
+    return success, error, id_canvas_list_out
 

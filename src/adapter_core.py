@@ -70,3 +70,4 @@ class AdapterCore:
         raise NotImplementedError("AdapterCore.update_manifest")
 
 
+
