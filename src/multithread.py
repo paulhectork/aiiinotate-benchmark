@@ -1,7 +1,7 @@
 """
 multithreading functions to insert data.
 this module defines `multithread` (a decorator) and mt_* functions that use this decorator to parallelize.
-all multithreaded functions are grouped here for efficiency.
+all multithreaded functions are grouped here because otherwise things will be even more of a mess than they are aldready.
 """
 
 from threading import Lock

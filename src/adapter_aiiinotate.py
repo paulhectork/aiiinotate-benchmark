@@ -1,4 +1,5 @@
 from typing import Dict, List, Tuple, Optional
+from urllib.parse import quote_plus
 
 import requests
 
@@ -58,7 +59,7 @@ class AdapterAiiinotate(AdapterCore):
 
     def delete_manifest(self, id_manifest: str):
         """delete a manifest"""
-        r = requests.delete(f"{self.endpoint}/manifests/2/delete?uri={id_manifest}")
+        r = requests.delete(f"{self.endpoint}/manifests/2/delete?uri={quote_plus(id_manifest)}")
         return 1 if r.json()["deletedCount"] > 0 else 0
 
     def delete_annotation(self, id_annotation: str):
@@ -71,7 +72,7 @@ class AdapterAiiinotate(AdapterCore):
         :param id_manifest: the manifest's "@id"
         """
         id_manifest = get_manifest_short_id(id_manifest)
-        r = requests.delete(f"{self.endpoint}/annotations/2/delete?manifestShortId={id_manifest}")
+        r = requests.delete(f"{self.endpoint}/annotations/2/delete?manifestShortId={quote_plus(id_manifest)}")
         return 1 if r.json()["deletedCount"] > 0 else 0
 
     def update_annotation(self, id_annotation):

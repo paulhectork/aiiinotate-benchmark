@@ -50,6 +50,7 @@ class Benchmark:
         self.log = {
             "server_name": self.adapter.server_name,
             "time_unit": "s",
+            "threads": self.threads,
             "results": []
         }
 

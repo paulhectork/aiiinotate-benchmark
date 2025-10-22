@@ -1,4 +1,6 @@
+from json import JSONDecodeError
 from typing import Dict, List, Tuple, Optional
+from urllib.parse import quote_plus
 
 import requests
 
@@ -33,9 +35,13 @@ class AdapterSas(AdapterCore):
             f"{self.endpoint}/annotation/create",
             json=annotation
         )
-        return 1 if "@id" in r.json().keys() else 0
+        try:
+            r_json = r.json()
+            return 1 if "@id" in r_json.keys() else 0
+        except JSONDecodeError:
+            return 0
 
-    #NOTE: for some obscure reason, SAS can take A LOT of time to send a response
+    #NOTE: for some obscure reason (multithreading?), SAS can take A LOT of time to send a response
     def insert_annotation_list(self, annotation_list: Dict):
         """
         insert an AnnotationList
@@ -50,7 +56,6 @@ class AdapterSas(AdapterCore):
     def get_manifest(self):
         """read a single manifest"""
 
-
     def get_manifest_collection(self) -> Dict:
         """return the collection of manifests"""
         r = requests.get(f"{self.endpoint}/manifests")
@@ -58,7 +63,8 @@ class AdapterSas(AdapterCore):
 
     def get_annotation_list(self, id_canvas: str):
         """read annotations into an annotationList ('search' route ?)"""
-        r = requests.get(f"{self.endpoint}/annotation/search?uri=${id_canvas}")
+        r = requests.get(f"{self.endpoint}/annotation/search?uri=${quote_plus(id_canvas)}")
+        print(r.text)
         assert r.status_code == 200
         return r.json()
 
@@ -69,7 +75,7 @@ class AdapterSas(AdapterCore):
 
     def delete_annotation(self, id_annotation: str):
         """delete an annotation"""
-        r = requests.delete(f"{self.endpoint}/annotation/destroy?uri={id_annotation}")
+        r = requests.delete(f"{self.endpoint}/annotation/destroy?uri={quote_plus(id_annotation)}")
         print(r.status_code)
         print(r.json())
 
@@ -84,7 +90,7 @@ class AdapterSas(AdapterCore):
 
     def delete_annotations_for_manifest(self, id_manifest:str):
         id_manifest = get_manifest_short_id(id_manifest)
-        r = requests.get(f"{self.endpoint}/search-api/${id_manifest}/search")
+        r = requests.get(f"{self.endpoint}/search-api/${quote_plus(id_manifest)}/search")
         annotation_list = r.json()
         for annotation in annotation_list["resources"]:
             self.delete_annotation(annotation["@id"])
