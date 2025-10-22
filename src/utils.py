@@ -50,7 +50,6 @@ def get_manifest_short_id(iiif_uri:str) -> str:
     for kw in keywords:
         if kw in iiif_uri_arr:
             id_short = iiif_uri_arr[ iiif_uri_arr.index(kw) -1 ]
-            print(id_short)
             break
     if id_short == "":
         raise ValueError(f"could not extract a manifest short ID from '{iiif_uri}'")

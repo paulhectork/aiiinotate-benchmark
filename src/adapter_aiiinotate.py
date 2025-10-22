@@ -32,7 +32,11 @@ class AdapterAiiinotate(AdapterCore):
             f"{self.endpoint}/annotations/2/createMany",
             json=annotation_list
         )
-        pprint(r.json(), 50)
+        r_json = r.json()
+        if "insertedIds" in r_json and len(r_json["insertedIds"]):
+            return 1
+        else:
+            return 0
 
     # TODO delete ?
     def get_manifest(self):

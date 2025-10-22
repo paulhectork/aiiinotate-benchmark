@@ -44,15 +44,18 @@ def multithread(func) -> Callable:
 
         # split `data` into even sized sub-lists to pass to each process.
         if "data" in kwargs.keys():
-            if not  isinstance(kwargs["data"], list):
+            if not isinstance(kwargs["data"], list):
                 raise TypeError(f"kwargs['data'] must be a list ! got '{type(kwargs['data'])}'")
             data = kwargs["data"]
             n = len(data)
             n_per_thread = n // threads  # number of items to process in each thread
             # https://stackoverflow.com/a/2231685
             data = [
-                data[i:i+n] for i in range(0, n, n_per_thread)
+                data[i:i+n_per_thread] for i in range(0, n, n_per_thread)
             ]
+            data_shape = [ len(d) for d in data ]
+            assert len(data) == threads
+            assert len(set(data_shape)) == 1  # all lists in data are of the same length
             kwargs["data"] = data
             kwargs["n"] = n_per_thread
 
@@ -76,7 +79,6 @@ def multithread(func) -> Callable:
             # extract the `data` sublist to pass to `f`.
             if "data" in kwargs.keys():
                 kw["data"] = kwargs["data"][i]
-
             pool_kwargs.append((func, kw))
 
         # we pass to `pool`

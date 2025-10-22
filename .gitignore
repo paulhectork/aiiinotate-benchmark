@@ -2,3 +2,4 @@ venv/*
 .env.aiiinotate
 */__pycache__/*
 __pycache__/*
+src/__pycache__/adapter_aiiinotate.cpython-310.pyc src/__pycache__/adapter_core.cpython-310.pyc src/__pycache__/adapter_sas.cpython-310.pyc src/__pycache__/benchmark.cpython-310.pyc src/__pycache__/generate.cpython-310.pyc src/__pycache__/__init__.cpython-310.pyc src/__pycache__/multithread.cpython-310.pyc src/__pycache__/runner.cpython-310.pyc src/__pycache__/utils.cpython-310.pyc

@@ -43,7 +43,7 @@ class Benchmark:
         self.steps = steps
         self.step_current = None
         self.threads = 20
-        self.ratio = 0.01  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases will have annotations.
+        self.ratio = 0.01  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases in a manifest will have annotations.
         self.n_annotation = 1000  # number of annotations per canvas.
 
     def step(self, step):
@@ -74,7 +74,7 @@ class Benchmark:
                 data=id_canvas_list,
                 n_annotation=self.n_annotation,
                 threads=self.threads,
-                pbar_desc=f"inserting {self.n_annotation} annotations on {self.ratio*100}% of canvases on {n_manifest} manifests (threads={self.threads})"
+                pbar_desc=f"inserting {self.n_annotation * len(id_canvas_list)} annotations on {len(id_canvas_list)} canvases (threads={self.threads})"
             )
 
         finally:

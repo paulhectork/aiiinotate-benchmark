@@ -32,21 +32,13 @@ def mkstr():
 def generate_annotation(id_manifest_short: str, id_canvas:str) -> Dict:
     annotation = deepcopy(annotation_2_template)
     annotation["@id"] = f"http://aikon.enpc.fr/sas/{id_manifest_short}/annotation/id_{mkstr()}"
-    annotation["on"] = id_canvas
+    annotation["on"] = f"{id_canvas}#xywh=5,0,1824,2161"
     return annotation
 
 def generate_annotation_list(id_canvas, n_annotations:int) -> Dict:
     """generate an annotationlist on canvas `id_canvas` with `n` annotations"""
     # AnnotationList URI: {scheme}://{host}/{prefix}/{identifier}/list/{name}
     id_manifest_short = get_manifest_short_id(id_canvas)
-    pprint({
-        "@context": "http://iiif.io/api/presentation/2/context.json",
-        "@type": "sc:AnnotationList",
-        "@id": f"http://aikon.enpc.fr/sas/{id_manifest_short}/list/l_{uuid4()}",
-        "resources": [
-            generate_annotation(id_manifest_short, id_canvas)
-        ]
-    })
     return {
         "@context": "http://iiif.io/api/presentation/2/context.json",
         "@type": "sc:AnnotationList",
