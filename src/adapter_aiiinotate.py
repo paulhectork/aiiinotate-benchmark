@@ -57,8 +57,9 @@ class AdapterAiiinotate(AdapterCore):
         raise NotImplementedError("AdapterCore.get_annotation_list")
 
     def delete_manifest(self, id_manifest: str):
-        """delete an annotation"""
-        raise NotImplementedError("AdapterCore.delete_manifest")
+        """delete a manifest"""
+        r = requests.delete(f"{self.endpoint}/manifests/2/delete?uri={id_manifest}")
+        return 1 if r.json()["deletedCount"] > 0 else 0
 
     def delete_annotation(self, id_annotation: str):
         """delete an annotation"""

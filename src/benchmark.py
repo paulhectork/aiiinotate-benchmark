@@ -119,7 +119,12 @@ class Benchmark:
                 threads=self.threads,
                 pbar_desc=f"deleting all annotations from {len(list_id_manifest)} manifests (threads={self.threads})"
             )
-            #TODO: delete manifests
+            mt_delete(
+                data=list_id_manifest,
+                func=self.adapter.delete_manifest,
+                threads=self.threads,
+                pbar_desc=f"deleting {len(list_id_manifest)} manifests (threads={self.threads})"
+            )
         else:
             #NOTE: with SAS, we can't delete manifests, so we just delete annotations.
             mt_delete(

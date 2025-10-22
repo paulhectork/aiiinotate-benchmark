@@ -11,7 +11,7 @@ def runner(server: str, endpoint: str) -> None:
 
     Benchmark(adapter, [
         [100, 100],
-        [1000, 1000],
+        # [1000, 1000],
         # [1000, 10000],
         # [10000, 10000],
         # [10000, 100000],
