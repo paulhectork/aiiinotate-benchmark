@@ -55,7 +55,10 @@ class AdapterAiiinotate(AdapterCore):
 
     def get_annotation_list(self, id_canvas:str):
         """read annotations into an annotationList ('search' route ?)"""
-        raise NotImplementedError("AdapterCore.get_annotation_list")
+        r = requests.get(f"{self.endpoint}/annotations/2/search?uri={quote_plus(id_canvas)}&asAnnotationList=true")
+        assert r.status_code == 200
+        return r.json()
+
 
     def delete_manifest(self, id_manifest: str):
         """delete a manifest"""

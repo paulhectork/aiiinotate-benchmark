@@ -1,6 +1,7 @@
 import json
 import pathlib
 from pathlib import Path
+from datetime import datetime
 from typing import Dict, List, Optional
 
 PATH_SRC = pathlib.Path(__file__).parent.resolve()
@@ -9,10 +10,19 @@ PATH_DATA = pathlib.Path(PATH_ROOT / "data").resolve()
 PATH_MANIFEST_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_manifest.jsonld"
 PATH_ANNOTATION_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_annotation.jsonld"
 PATH_CANVAS_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_canvas.jsonld"
+PATH_OUT = PATH_ROOT / "out"
 
 def read_json(fp: Path) -> Dict:
     with open(fp, mode="r", encoding="utf-8") as fh:
         return json.load(fh)
+
+def write_log(server_name:str, log: Dict) -> None:
+    if not PATH_OUT.exists():
+        PATH_OUT.mkdir()
+    out_name = f"log_benchmark_{server_name}_{datetime.now().strftime(r'%Y-%m-%d-%H:%M:%S')}.json"
+    with open(PATH_OUT / out_name, mode="w", encoding="utf-8") as fh:
+        json.dump(log, fh, indent=2)
+    return
 
 def pprint(jsonlike: Dict|List, maxlen=-1) -> None:
     """

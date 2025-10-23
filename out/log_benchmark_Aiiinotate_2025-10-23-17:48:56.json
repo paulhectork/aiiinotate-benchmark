@@ -1,0 +1,32 @@
+{
+  "server_name": "Aiiinotate",
+  "time_unit": "s",
+  "threads": 20,
+  "n_read_iterations": 10,
+  "results": [
+    {
+      "step": {
+        "index": 0,
+        "n_manifest": 100,
+        "n_canvas": 100,
+        "n_annotations": 100000,
+        "n_annotations_per_canvas": 100.0
+      },
+      "duration_insert_manifest": 0.386111184998299,
+      "duration_insert_annotation": 2.237342501000967,
+      "duration_read_annotation_list": 0.015505127900178195
+    },
+    {
+      "step": {
+        "index": 1,
+        "n_manifest": 100,
+        "n_canvas": 1000,
+        "n_annotations": 1000000,
+        "n_annotations_per_canvas": 100.0
+      },
+      "duration_insert_manifest": 2.410924484000134,
+      "duration_insert_annotation": 42.236918599999626,
+      "duration_read_annotation_list": 0.014307639600156108
+    }
+  ]
+}

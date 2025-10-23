@@ -62,8 +62,8 @@ class AdapterSas(AdapterCore):
         return r.json()
 
     def get_annotation_list(self, id_canvas: str):
-        """read annotations into an annotationList ('search' route ?)"""
-        r = requests.get(f"{self.endpoint}/annotation/search?uri=${quote_plus(id_canvas)}")
+        """read anno  tations into an annotationList ('search' route ?)"""
+        r = requests.get(f"{self.endpoint}/annotation/search?uri={quote_plus(id_canvas)}")
         print(r.text)
         assert r.status_code == 200
         return r.json()
@@ -77,23 +77,29 @@ class AdapterSas(AdapterCore):
         """delete an annotation"""
         r = requests.delete(f"{self.endpoint}/annotation/destroy?uri={quote_plus(id_annotation)}")
         print(r.status_code)
-        print(r.json())
+        if r.status_code == 204:
+            return 1
+        else:
+            return 0
 
     def delete_annotations_for_canvas(self, id_canvas:str):
         annotation_list = self.get_annotation_list(id_canvas)
         list_id_annotation = [
             a["@id"] for a in annotation_list["resources"]
         ]
+        r_all = []
         for id_annotation in list_id_annotation:
-            self.delete_annotation(id_annotation)
-        return
+            r_all.append(self.delete_annotation(id_annotation))
+        return 1 if len(set(r_all)) == 1 and r_all[0] == 1 else 0
 
     def delete_annotations_for_manifest(self, id_manifest:str):
         id_manifest = get_manifest_short_id(id_manifest)
-        r = requests.get(f"{self.endpoint}/search-api/${quote_plus(id_manifest)}/search")
+        r = requests.get(f"{self.endpoint}/search-api/{quote_plus(id_manifest)}/search")
         annotation_list = r.json()
+        r_all = []
         for annotation in annotation_list["resources"]:
-            self.delete_annotation(annotation["@id"])
+            r_all.append(self.delete_annotation(annotation["@id"]))
+        return 1 if len(set(r_all)) == 1 and r_all[0] == 1 else 0
 
     def update_annotation(self, id_annotation):
         """update an annotation"""

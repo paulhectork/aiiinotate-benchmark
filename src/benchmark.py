@@ -1,10 +1,11 @@
+import shutil
 import random
 from typing import List, Tuple, Dict
 from timeit import default_timer as timer
 
 import requests
 
-from .utils import pprint
+from .utils import pprint, write_log
 from .adapter_core import AdapterCore
 from .multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
 
@@ -47,19 +48,23 @@ class Benchmark:
         self.threads = 20
         self.ratio = 0.01  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases in a manifest will have annotations.
         self.n_annotation = 1000  # number of annotations per canvas.
+        self.n_read_iterations = 10  # number of iterations for read benchmarking: we will run read queries `n` times and then get the average time for a single query.
         self.log = {
             "server_name": self.adapter.server_name,
             "time_unit": "s",
             "threads": self.threads,
+            "n_read_iterations": self.n_read_iterations,
             "results": []
         }
 
-    def step_to_dict(self, step: List[int]) -> Dict:
+    def step_to_dict(self, idx_step: int, step: Tuple[int,int]) -> Dict:
         n_canvas, n_manifest = step
         return {
+            "index": idx_step,
             "n_manifest": step[0],
             "n_canvas": step[1],
             "n_annotations": self.n_annotation * round(n_canvas * self.ratio) * n_manifest,
+            "n_annotations_per_canvas": 1/self.ratio
         }
 
     def inserts(self):
@@ -68,7 +73,8 @@ class Benchmark:
         NOTE: this isn't really a step of the benchmark as much as it is a preparatory step, but we log times just in case.
             in more detail: in Aiiinotate, a big insert bottleneck is to fetch the manifest for each annotation's target, index the manifest and get annotation's canvas index, which we can't replicate.
         """
-        n_manifest, n_canvas = self.step_current["data"]  # pyright:ignore
+        n_manifest = self.step_current["n_manifest"]  # pyright:ignore
+        n_canvas = self.step_current["n_canvas"]  # pyright:ignore
 
         # insert manifests
         s = timer()
@@ -100,12 +106,29 @@ class Benchmark:
             data=list_id_canvas_sample,
             n_annotation=self.n_annotation,
             threads=self.threads,
-            pbar_desc=f"inserting {self.n_annotation * len(list_id_canvas_sample)} annotations on {len(list_id_canvas)} canvases (threads={self.threads})"
+            pbar_desc=f"inserting {self.n_annotation * len(list_id_canvas_sample)} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
         )
         e = timer()
         d_insert_annotation = e-s
         assert len(list_id_canvas_sample) == len(list_id_canvas_annotations)
         return d_insert_manifest, d_insert_annotation, list_id_canvas_full, list_id_canvas_annotations
+
+    def read(self, list_id_canvas:List[str]):
+        """
+        this is actually what we're really interested in: read time benchmarking.
+
+        :param list_id_canvas: canvases containing annotations
+        """
+        list_id_canvas = random.sample(list_id_canvas, self.n_read_iterations)
+
+        s = timer()
+        for id_canvas in list_id_canvas:
+            annotation_list = self.adapter.get_annotation_list(id_canvas)
+            assert "resources" in annotation_list
+            assert len(annotation_list["resources"]) > 0
+        e = timer()
+
+        return (e - s) / self.n_read_iterations
 
     def purge(self, list_id_canvas_annotations: List[str] = []):
         """
@@ -145,26 +168,48 @@ class Benchmark:
                 )
         return
 
-    def step(self, idx_step:int, step):
+    def step(self, idx_step:int, step: Tuple[int,int]):
+        """
+        run a single step.
+
+        :param idx_step: position of steps within `self.steps`
+        :param step: [n_manifest, n_canvas]
+        """
+        list_id_canvas_annotations = []
+        step_dict = self.step_to_dict(idx_step, step)
+        self.step_current = step_dict
         log = {
-            "step": self.step_to_dict(step),
+            "step": step_dict,
             "duration_insert_manifest": None,
             "duration_insert_annotation": None,
+            "duration_read_annotation_list": None,
         }
-        list_id_canvas_annotations = []
+
+        t_width = shutil.get_terminal_size((80,20))[0]
+        banner_start = f"\nSTART STEP #{idx_step}: {step_dict}\n{'*' * t_width}\n"
+        banner_end = f"{'*' * t_width}\n"
+        print(banner_start)
+
         try:
-            self.step_current = { "index": idx_step, "data": step }
             d_insert_manifest, d_insert_annotation, list_id_canvas_full, list_id_canvas_annotations = self.inserts()
             log["duration_insert_manifest"] = d_insert_manifest
             log["duration_insert_annotation"] = d_insert_annotation
+            log["duration_read_annotation_list"] = self.read(list_id_canvas_annotations)
 
         finally:
             self.purge(list_id_canvas_annotations)
             self.step_current = None
             self.log["results"].append(log)
+            print(f"\nSTEP #{idx_step} RESULTS:")
             pprint(log)
+            print("")
+
+        print(banner_end)
         return
 
     def run(self):
         for i, step in enumerate(self.steps):
-            self.step(i, step)
+            self.step(i, step)  # pyright: ignore
+        write_log(self.adapter.server_name, self.log)
+        return
+

@@ -13,6 +13,9 @@ from tqdm import tqdm
 
 from .generate import generate_annotation_list, generate_manifest
 
+def validate_n(n:int, threads:int) -> None:
+    if n < threads:
+        raise ValueError(f"'n' must be larger than 'threads' to be properly divided among threads. got n={n}, threads={threads}")
 
 def multithread_wrapper(f, kwargs):
     """unpack kwargs and call the function."""
@@ -48,6 +51,7 @@ def multithread(func) -> Callable:
                 raise TypeError(f"kwargs['data'] must be a list ! got '{type(kwargs['data'])}'")
             data = kwargs["data"]
             n = len(data)
+            validate_n(n, threads)
             n_per_thread = n // threads  # number of items to process in each thread
 
             # make a nested list of length `threads`, each sub-list with the same number of items
@@ -73,6 +77,7 @@ def multithread(func) -> Callable:
         # get the number of entries to process per thread
         else:
             n = kwargs["n"]
+            validate_n(n, threads)
             n_per_thread = n // threads
             kwargs["n"] = n_per_thread
 
