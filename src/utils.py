@@ -59,10 +59,10 @@ def read_json(fp: Path) -> Dict:
     with open(fp, mode="r", encoding="utf-8") as fh:
         return json.load(fh)
 
-def write_log(server_name: str, timestamp: str, log: Dict) -> None:
+def write_log(server_name: str, n_steps:int, timestamp: str, log: Dict) -> None:
     if not PATH_OUT.exists():
         PATH_OUT.mkdir()
-    out_name = f"log_benchmark_{server_name.lower()}_{timestamp}.json"
+    out_name = f"log_benchmark_{server_name.lower()}_{n_steps}steps_{timestamp}.json"
     with open(PATH_OUT / out_name, mode="w", encoding="utf-8") as fh:
         json.dump(log, fh, indent=2)
     return

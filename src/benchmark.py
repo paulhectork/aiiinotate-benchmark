@@ -254,13 +254,14 @@ class Benchmark:
 
     def run(self):
         timestamp = datetime.now().strftime(r'%Y-%m-%d-%H:%M:%S')
+        write = lambda: write_log(self.adapter.server_name, len(self.steps), timestamp, self.log)
         print("Global benchmark parameters:")
         pprint(self.log)
         try:
             for i, step in enumerate(self.steps):
                 self.step(i, step)  # pyright: ignore
-                write_log(self.adapter.server_name, timestamp, self.log)
+                write()
         finally:
-                write_log(self.adapter.server_name, timestamp, self.log)
+                write()
         return
 
