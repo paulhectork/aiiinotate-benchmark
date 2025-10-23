@@ -1,36 +1,28 @@
 import shutil
 import random
+from itertools import chain
 from datetime import datetime
 from typing import List, Tuple, Dict
 from timeit import default_timer as timer
 
-from .utils import RATIO_DEFAULT, pprint, write_log
-from .adapter_core import AdapterCore
+from .utils import STEPS_GROUP, STEPS_FLAT, STEPS_RANGE, RATIO_DEFAULT, N_STEPS_DEFAULT, pprint, write_log
+from .adapter_core import AdapterCore, validate_endpoint
+from .adapter_sas import AdapterSas
+from .adapter_aiiinotate import AdapterAiiinotate
 from .multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
 
 
-def validate_steps(steps) -> None:
-    err = TypeError(f"validate_steps: 'steps' must be 'List[Tuple[int,int]]' or List[List[int]], will only positive values, got {steps}")
-    if not isinstance(steps, list):
-        raise err
-    if not all(
-        isinstance(step, list) or isinstance(step, tuple)
-        for step in steps
+def validate_n_steps(n_steps: int):
+    if (
+        (not isinstance(n_steps, int))
+        or n_steps < STEPS_RANGE[0]
+        or n_steps > STEPS_RANGE[1]
     ):
-        raise err
-    if not all(
-        isinstance(i, int) for step in steps for i in step
-    ):
-        raise err
-    if not all(
-        i>=0 for step in steps for i in step
-    ):
-        raise err
-    return
+        raise ValueError(f"validate_n_steps: 'steps' must be an integer, with steps <= {len(STEPS_GROUP)}, got '{n_steps}'" )
 
-def validate_adapter(adapter) -> None:
-    if not isinstance(adapter, AdapterCore):
-        raise TypeError(f"validate_adapter: adapter '{adapter}' must inherit from 'AdapterCore'")
+def validate_server(server:str) -> None:
+    if server not in ["aiiinotate", "sas"]:
+        raise TypeError(f"validate_adapter: server '{server}' must be one of ['aiiinotate', 'sas']")
     return
 
 def validate_ratio(r) -> None:
@@ -42,8 +34,11 @@ def validate_ratio(r) -> None:
 class Benchmark:
     def __init__(
         self,
-        adapter: AdapterCore,
-        steps: List[List[int]] | List[Tuple[int,int]],
+        endpoint: str,
+        # adapter: AdapterCore,
+        server: str,
+        n_steps: int = N_STEPS_DEFAULT,
+        # steps: List[List[int]] | List[Tuple[int,int]],
         ratio: float|None = RATIO_DEFAULT,
     ):
         """
@@ -51,9 +46,21 @@ class Benchmark:
         :param adapter: an adapter inheriting from 'AdapterCore'
         :param ratio: ratio of canvases with annotations / canvases without annotations
         """
-        validate_steps(steps)
-        validate_adapter(adapter)
         validate_ratio(ratio)
+        validate_n_steps(n_steps)
+        validate_server(server)
+        validate_endpoint(endpoint)
+
+        adapter: AdapterCore
+        if server == "aiiinotate":
+            adapter = AdapterAiiinotate(endpoint)
+        else:
+            adapter = AdapterSas(endpoint)
+
+        # STEPS_GROUP is used to count steps in the CLI, STEPS_FLAT is actually used for the benchmark
+        # => select the values in STEPS_FLAT based on `n_steps`
+        steps: list = STEPS_FLAT[:3*n_steps]
+
         self.adapter = adapter
         self.steps = steps
         self.ratio = ratio if ratio is not None else RATIO_DEFAULT  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases in a manifest will have annotations.
@@ -65,10 +72,11 @@ class Benchmark:
         self.step_current = None
         self.log = {
             "server_name": self.adapter.server_name,
-            "time_unit": "s",
+            "n_steps": 3 * n_steps,
             "threads": self.threads,
             "n_iterations": self.n_iterations,
             "ratio_canvas_with_annotations": self.ratio,
+            "time_unit": "seconds",
             "results": []
         }
 

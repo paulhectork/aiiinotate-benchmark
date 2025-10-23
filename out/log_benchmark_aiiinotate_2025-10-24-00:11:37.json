@@ -1,0 +1,9 @@
+{
+  "server_name": "Aiiinotate",
+  "n_steps": 6,
+  "threads": 20,
+  "n_iterations": 50,
+  "ratio_canvas_with_annotations": 0.01,
+  "time_unit": "seconds",
+  "results": []
+}

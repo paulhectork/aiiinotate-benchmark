@@ -1,0 +1,61 @@
+{
+  "server_name": "Aiiinotate",
+  "n_steps": 6,
+  "threads": 20,
+  "n_iterations": 50,
+  "ratio_canvas_with_annotations": 0.01,
+  "time_unit": "seconds",
+  "results": [
+    {
+      "step": {
+        "index": 0,
+        "n_manifest": 100,
+        "n_canvas": 100,
+        "n_annotations": 100000,
+        "n_annotation_per_canvas": 1000
+      },
+      "duration_insert_manifest": 0.38046298500557896,
+      "duration_insert_annotation": 2.0405811889941106,
+      "duration_read_annotation_list": 0.017152396480087193,
+      "duration_read_annotation": 0.013267631839989918
+    },
+    {
+      "step": {
+        "index": 1,
+        "n_manifest": 100,
+        "n_canvas": 1000,
+        "n_annotations": 1000000,
+        "n_annotation_per_canvas": 1000
+      },
+      "duration_insert_manifest": 2.341711811001005,
+      "duration_insert_annotation": 29.944736951998493,
+      "duration_read_annotation_list": 0.013145681239984696,
+      "duration_read_annotation": 0.11637898542001494
+    },
+    {
+      "step": {
+        "index": 2,
+        "n_manifest": 100,
+        "n_canvas": 10000,
+        "n_annotations": 10000000,
+        "n_annotation_per_canvas": 1000
+      },
+      "duration_insert_manifest": 24.149689557001693,
+      "duration_insert_annotation": 402.2970932699973,
+      "duration_read_annotation_list": 0.01377486705998308,
+      "duration_read_annotation": 0.8967126490999362
+    },
+    {
+      "step": {
+        "index": 3,
+        "n_manifest": 1000,
+        "n_canvas": 100,
+        "n_annotations": 1000000,
+        "n_annotation_per_canvas": 1000
+      },
+      "duration_insert_manifest": null,
+      "duration_insert_annotation": null,
+      "duration_read_annotation_list": null
+    }
+  ]
+}

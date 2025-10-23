@@ -109,6 +109,7 @@ class AdapterSas(AdapterCore):
         """update an annotation"""
         raise NotImplementedError("AdapterSas.update_manifest")
 
+    #TODO: fix OR find a way to work with that.
     def purge(self):
         """
         delete all contents from database.
