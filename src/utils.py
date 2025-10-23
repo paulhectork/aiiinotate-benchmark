@@ -12,6 +12,8 @@ PATH_ANNOTATION_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_annotation.jsonld"
 PATH_CANVAS_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_canvas.jsonld"
 PATH_OUT = PATH_ROOT / "out"
 
+RATIO_DEFAULT= 0.01  # canvases with annotations / canvases without annotations.
+
 def read_json(fp: Path) -> Dict:
     with open(fp, mode="r", encoding="utf-8") as fh:
         return json.load(fh)

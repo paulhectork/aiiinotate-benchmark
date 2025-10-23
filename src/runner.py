@@ -1,9 +1,10 @@
-from src.adapter_aiiinotate import AdapterAiiinotate
-from src.adapter_sas import AdapterSas
-from src.benchmark import Benchmark
+from .adapter_aiiinotate import AdapterAiiinotate
+from .adapter_sas import AdapterSas
+from .benchmark import Benchmark
+from .utils import RATIO_DEFAULT
 
 
-def runner(server: str, endpoint: str) -> None:
+def runner(server: str, endpoint: str, ratio: float|None = RATIO_DEFAULT) -> None:
     if server == "aiiinotate":
         adapter = AdapterAiiinotate(endpoint)
     else:
@@ -31,4 +32,4 @@ def runner(server: str, endpoint: str) -> None:
         # [1000000, 100],
         # [1000000, 1000],
         # [1000000, 10000],
-    ]).run()
+    ], ratio).run()

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Tuple, Dict
 from timeit import default_timer as timer
 
-from .utils import pprint, write_log
+from .utils import RATIO_DEFAULT, pprint, write_log
 from .adapter_core import AdapterCore
 from .multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
 
@@ -34,15 +34,17 @@ def validate_adapter(adapter) -> None:
     return
 
 def validate_ratio(r) -> None:
-    if not isinstance(r, float) or not (r>0 and r<=1):
-        raise ValueError(f"validate_ratio: ratio must be a float in range 0..1, got '{r}' (type {type('r')})")
+    if r is not None:
+        if not isinstance(r, float) or not (r>0 and r<=1):
+            raise ValueError(f"validate_ratio: ratio must be a float in range 0..1, got '{r}' (type {type('r')})")
+    return
 
 class Benchmark:
     def __init__(
         self,
         adapter: AdapterCore,
         steps: List[List[int]] | List[Tuple[int,int]],
-        ratio: float = 0.01,
+        ratio: float|None = RATIO_DEFAULT,
     ):
         """
         :param steps: steps of the benchmark, i.e [ (<step 1: number of manifests>, <step 1  number of canvases / manifest>), (<step 2: # manifests>, <step 2 # canvases / manifest>), ... ]
@@ -54,7 +56,7 @@ class Benchmark:
         validate_ratio(ratio)
         self.adapter = adapter
         self.steps = steps
-        self.ratio = ratio  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases in a manifest will have annotations.
+        self.ratio = ratio if ratio is not None else RATIO_DEFAULT  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases in a manifest will have annotations.
 
         self.n_annotation = 1000  # number of annotations per canvas.
         self.n_iterations = 50  # number of iterations for read benchmarking: we will run read queries `n` times and then get the average time for a single query.
@@ -247,8 +249,11 @@ class Benchmark:
         timestamp = datetime.now().strftime(r'%Y-%m-%d-%H:%M:%S')
         print("Global benchmark parameters:")
         pprint(self.log)
-        for i, step in enumerate(self.steps):
-            self.step(i, step)  # pyright: ignore
-        write_log(self.adapter.server_name, timestamp, self.log)
+        try:
+            for i, step in enumerate(self.steps):
+                self.step(i, step)  # pyright: ignore
+                write_log(self.adapter.server_name, timestamp, self.log)
+        finally:
+                write_log(self.adapter.server_name, timestamp, self.log)
         return
 
