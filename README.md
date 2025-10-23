@@ -31,6 +31,8 @@ you're done:)
 
 benchmarks are done using a CLI. aiiinotate and SAS are benchmarked independently.
 
+Run `python main.py --help` for a full list of options.
+
 ### Aiiinotate
 
 1. in one terminal, **start aiiinotate** (unecessary if benchmarking a remote aiiinotate instance that is aldready running)
@@ -42,8 +44,13 @@ bash run_aiiinotate.sh
 2. in another terminal, **run the benchmark**
 
 ```bash
+# assuming aiiinotate runs on http:/localhost:4000
 source venv/bin/activate
-python main.py aiiinotate -e http://localhost:4000  # assuming aiiinotate runs on http:/localhost:4000
+python main.py \
+    aiiinotate \
+    -e http://localhost:4000 \
+    -n 3 \
+    -r 0.01
 ```
 
 ### SAS
@@ -57,8 +64,13 @@ bash run_sas.sh
 2. in another terminal, **run the benchmark**
 
 ```bash
+# assuming sas runs on http://localhost:8888
 source venv/bin/activate
-python main.py sas -e http://localhost:8888  # assuming sas runs on http://localhost:8888
+python main.py \
+    sas \
+    -e http://localhost:8888 \
+    -n 3
+    -r 0.01
 ```
 
 ---
