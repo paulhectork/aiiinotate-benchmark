@@ -1,11 +1,12 @@
 from json import JSONDecodeError
 from typing import Dict, List, Tuple, Optional
 from urllib.parse import quote_plus
+import subprocess
 
 import requests
 
 from .adapter_core import AdapterCore
-from .utils import get_canvas_ids, get_manifest_short_id
+from .utils import PATH_ROOT, get_canvas_ids, get_manifest_short_id
 
 class AdapterSas(AdapterCore):
     def __init__(self, endpoint):
@@ -64,7 +65,6 @@ class AdapterSas(AdapterCore):
     def get_annotation_list(self, id_canvas: str):
         """read anno  tations into an annotationList ('search' route ?)"""
         r = requests.get(f"{self.endpoint}/annotation/search?uri={quote_plus(id_canvas)}")
-        print(r.text)
         assert r.status_code == 200
         return r.json()
 
@@ -110,6 +110,19 @@ class AdapterSas(AdapterCore):
         raise NotImplementedError("AdapterSas.update_manifest")
 
     def purge(self):
-        """delete all contents from database"""
-        raise NotImplementedError("AdapterSas.purge")
+        """
+        delete all contents from database.
+        we do this crudely by simply deleting the `data` directory, which SAS will recreate at next reboot.
+
+        NOTE: 1. after doing this, the SAS app should become unusable.
+        NOTE: 2. the effects of this are only visible when stopping the app after and rebooting it.
+        NOTE: 3. this does not affect the indexation of manifests (written to memory and not to file ?)
+        """
+        path_sas_data = PATH_ROOT / "SimpleAnnotationServer" / "data"
+        if not path_sas_data.exists():
+            raise FileNotFoundError(f"AdapterSas.purge: data directory not found and cannot be purged, at '{path_sas_data}'")
+        subprocess.run(f"rm -r \"{path_sas_data}\"", shell=True)
+        return
+
+
 

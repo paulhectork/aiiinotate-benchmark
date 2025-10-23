@@ -11,7 +11,7 @@
 ## Delete
 
 - **mass deleting documents is slow on very large collections**:
-    - noticed when doing `Benchmark.purge` with 1.000 manifests, 10.000 canvases/manifest, 100.000.000 annotations: several minutes to delete documents
+    - noticed when doing `Benchmark.purge` (which deleted all annotations on manifests using parrallelized HTTP queries to routes of the annotation server) with 1.000 manifests, 10.000 canvases/manifest, 100.000.000 annotations: +1h to delete all 100M annotations
     - explanation: 
         - mongo locks the database from start of a delete query until the query is completed. If the delete filter is not done on an index field, what happens in a *collection scan*: every single document is successively read from disk.
         - [see this explanation](https://stackoverflow.com/a/33164008)
@@ -22,4 +22,4 @@
         - multithreading is *probably* ineffective on delete when working with very large collections: if I understand correctly, all threads are blocked except from the one currently doing the delete.
     - workarounds:
         - index fields to be deleted
-        - run the deletion directly through a mongosh command.
+        - run the deletion directly through a mongosh command => **this is what is done in `AiiinotateAdapter.purge()`**
