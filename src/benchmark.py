@@ -1,9 +1,8 @@
 import shutil
 import random
+from datetime import datetime
 from typing import List, Tuple, Dict
 from timeit import default_timer as timer
-
-import requests
 
 from .utils import pprint, write_log
 from .adapter_core import AdapterCore
@@ -31,29 +30,43 @@ def validate_steps(steps) -> None:
 
 def validate_adapter(adapter) -> None:
     if not isinstance(adapter, AdapterCore):
-        raise TypeError(f"validate_adapter: adapter '{adapter}' should inherit from 'AdapterCore'")
+        raise TypeError(f"validate_adapter: adapter '{adapter}' must inherit from 'AdapterCore'")
     return
 
+def validate_ratio(r) -> None:
+    if not isinstance(r, float) or not (r>0 and r<=1):
+        raise ValueError(f"validate_ratio: ratio must be a float in range 0..1, got '{r}' (type {type('r')})")
+
 class Benchmark:
-    def __init__(self, adapter: AdapterCore, steps: List[List[int]] | List[Tuple[int,int]]):
+    def __init__(
+        self,
+        adapter: AdapterCore,
+        steps: List[List[int]] | List[Tuple[int,int]],
+        ratio: float = 0.01,
+    ):
         """
         :param steps: steps of the benchmark, i.e [ (<step 1: number of manifests>, <step 1  number of canvases / manifest>), (<step 2: # manifests>, <step 2 # canvases / manifest>), ... ]
         :param adapter: an adapter inheriting from 'AdapterCore'
+        :param ratio: ratio of canvases with annotations / canvases without annotations
         """
         validate_steps(steps)
         validate_adapter(adapter)
+        validate_ratio(ratio)
         self.adapter = adapter
         self.steps = steps
-        self.step_current = None
-        self.threads = 20
-        self.ratio = 0.01  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases in a manifest will have annotations.
+        self.ratio = ratio  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases in a manifest will have annotations.
+
         self.n_annotation = 1000  # number of annotations per canvas.
-        self.n_read_iterations = 50  # number of iterations for read benchmarking: we will run read queries `n` times and then get the average time for a single query.
+        self.n_iterations = 50  # number of iterations for read benchmarking: we will run read queries `n` times and then get the average time for a single query.
+        self.threads = 20
+
+        self.step_current = None
         self.log = {
             "server_name": self.adapter.server_name,
             "time_unit": "s",
             "threads": self.threads,
-            "n_read_iterations": self.n_read_iterations,
+            "n_iterations": self.n_iterations,
+            "ratio_canvas_with_annotations": f"{self.ratio * 100}%",
             "results": []
         }
 
@@ -64,7 +77,7 @@ class Benchmark:
             "n_manifest": step[0],
             "n_canvas": step[1],
             "n_annotations": self.n_annotation * round(n_canvas * self.ratio) * n_manifest,
-            "n_annotations_per_canvas": 1/self.ratio
+            "n_annotation_per_canvas": self.n_annotation,
         }
 
     def inserts(self):
@@ -119,17 +132,37 @@ class Benchmark:
 
         :param list_id_canvas: canvases containing annotations
         """
-        list_id_canvas = random.sample(list_id_canvas, self.n_read_iterations)
+        list_id_canvas = random.sample(list_id_canvas, self.n_iterations)
+        list_annotation_list = []
+
+        d_read_annotation = None
 
         s = timer()
         for id_canvas in list_id_canvas:
             annotation_list = self.adapter.get_annotation_list(id_canvas)
-            assert "resources" in annotation_list
-            assert len(annotation_list["resources"]) > 0
+            assert "resources" in annotation_list and len(annotation_list["resources"]) > 0
+            list_annotation_list.append(annotation_list)
         e = timer()
+        d_read_annotation_list = (e - s) / self.n_iterations
 
-        return (e - s) / self.n_read_iterations
+        if self.adapter.server_name == "Aiiinotate":
+            # list of randomly selected annotation @ids.
+            list_id_annotation = [
+                random.choice(random.choice(list_annotation_list)["resources"])["@id"]
+                for _ in range(self.n_iterations)
+            ]
+            s = timer()
+            for id_annotation in list_id_annotation:
+                annotation = self.adapter.get_annotation(id_annotation)  # pyright: ignore
+                assert "@id" in annotation.keys() and annotation["@id"] == id_annotation
+            e = timer()
+            d_read_annotation = (e-s) / self.n_iterations
 
+        return d_read_annotation_list, d_read_annotation
+
+    # TODO: rewrite to avoid using server queries.
+    # - for aiiinotate, use subcommands and mongosh
+    # - for SAS, maybe delete SimpleAnnotationServer/data/*
     def purge(self, list_id_canvas_annotations: List[str] = []):
         """
         at the end of a step, delete all contents from a db.
@@ -194,7 +227,10 @@ class Benchmark:
             d_insert_manifest, d_insert_annotation, list_id_canvas_full, list_id_canvas_annotations = self.inserts()
             log["duration_insert_manifest"] = d_insert_manifest
             log["duration_insert_annotation"] = d_insert_annotation
-            log["duration_read_annotation_list"] = self.read(list_id_canvas_annotations)
+            d_read_annotation_list, d_read_annotation = self.read(list_id_canvas_annotations)
+            log["duration_read_annotation_list"] = d_read_annotation_list
+            if d_read_annotation is not None:
+                log["duration_read_annotation"] = d_read_annotation
 
         finally:
             self.purge(list_id_canvas_annotations)
@@ -208,8 +244,11 @@ class Benchmark:
         return
 
     def run(self):
+        timestamp = datetime.now().strftime(r'%Y-%m-%d-%H:%M:%S')
+        print("Global benchmark parameters:")
+        pprint(self.log)
         for i, step in enumerate(self.steps):
             self.step(i, step)  # pyright: ignore
-        write_log(self.adapter.server_name, self.log)
+        write_log(self.adapter.server_name, timestamp, self.log)
         return
 

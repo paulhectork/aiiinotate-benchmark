@@ -48,6 +48,11 @@ class AdapterAiiinotate(AdapterCore):
         """read a single manifest"""
         raise NotImplementedError("AdapterCore.get_manifest")
 
+    def get_annotation(self, id_annotation:str):
+        r = requests.get(id_annotation)
+        assert r.status_code == 200
+        return r.json()
+
     def get_manifest_collection(self) -> Dict:
         """return the collection of manifests"""
         r = requests.get(f"{self.endpoint}/manifests/2")

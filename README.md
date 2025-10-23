@@ -57,6 +57,7 @@ bash run_sas.sh
 2. in another terminal, **run the benchmark**
 
 ```bash
+source venv/bin/activate
 python main.py sas -e http://localhost:8888  # assuming sas runs on http://localhost:8888
 ```
 
