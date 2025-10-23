@@ -1,10 +1,13 @@
 from typing import Dict, List, Tuple, Optional
 from urllib.parse import quote_plus
+import subprocess
+import os
 
 import requests
+from dotenv import load_dotenv
 
 from .adapter_core import AdapterCore
-from .utils import pprint, get_manifest_short_id, get_canvas_ids
+from .utils import PATH_ROOT, pprint, get_manifest_short_id, get_canvas_ids
 
 
 class AdapterAiiinotate(AdapterCore):
@@ -64,7 +67,6 @@ class AdapterAiiinotate(AdapterCore):
         assert r.status_code == 200
         return r.json()
 
-
     def delete_manifest(self, id_manifest: str):
         """delete a manifest"""
         r = requests.delete(f"{self.endpoint}/manifests/2/delete?uri={quote_plus(id_manifest)}")
@@ -90,4 +92,32 @@ class AdapterAiiinotate(AdapterCore):
     def update_manifest(self, id_manifest):
         """update an annotation"""
         raise NotImplementedError("AdapterCore.update_manifest")
+
+    def purge(self):
+        """
+        delete all contents from database
+
+        # NOTE: this works with a local mongosh database on linux, without users or passwords.
+        # NOTE: this is totally not safe and should only be used in trusted environments and not in prod.
+        """
+        path_dotenv = PATH_ROOT / ".env.aiiinotate"
+        if not path_dotenv.exists():
+            raise FileNotFoundError(f".env.aiiinotate file not found at: '{path_dotenv}'")
+
+        load_dotenv(dotenv_path=PATH_ROOT / ".env.aiiinotate")
+        db_name = os.getenv("MONGODB_DB")
+        db_host = os.getenv("MONGODB_HOST")
+        db_port = os.getenv("MONGODB_PORT")
+        db_connstring = f"mongodb://{db_host}:{db_port}/{db_name}"
+
+        script_bash = (
+            f"mongosh \"{db_connstring}\" <<EOF\n"
+            f"use {db_name};\n"  # just in case
+            "db.getCollection(\"annotations2\").deleteMany({});\n"
+            "db.getCollection(\"manifests2\").deleteMany({});\n"
+            "EOF"
+        )
+        subprocess.run(script_bash, shell=True)
+
+        return
 

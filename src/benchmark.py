@@ -172,18 +172,19 @@ class Benchmark:
         """
         list_id_manifest = self.adapter.get_id_manifest_list()
         if self.adapter.server_name == "Aiiinotate":
-            mt_delete(
-                data=list_id_manifest,
-                func=self.adapter.delete_annotations_for_manifest,
-                threads=self.threads,
-                pbar_desc=f"deleting all annotations from {len(list_id_manifest)} manifests (threads={self.threads})"
-            )
-            mt_delete(
-                data=list_id_manifest,
-                func=self.adapter.delete_manifest,
-                threads=self.threads,
-                pbar_desc=f"deleting {len(list_id_manifest)} manifests (threads={self.threads})"
-            )
+            self.adapter.purge()
+            # mt_delete(
+            #     data=list_id_manifest,
+            #     func=self.adapter.delete_annotations_for_manifest,
+            #     threads=self.threads,
+            #     pbar_desc=f"deleting all annotations from {len(list_id_manifest)} manifests (threads={self.threads})"
+            # )
+            # mt_delete(
+            #     data=list_id_manifest,
+            #     func=self.adapter.delete_manifest,
+            #     threads=self.threads,
+            #     pbar_desc=f"deleting {len(list_id_manifest)} manifests (threads={self.threads})"
+            # )
         else:
             #NOTE: with SAS, we can't delete manifests, so we just delete annotations.
             if len(list_id_canvas_annotations):

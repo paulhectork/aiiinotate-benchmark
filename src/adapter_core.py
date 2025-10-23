@@ -72,5 +72,9 @@ class AdapterCore:
         """update an annotation"""
         raise NotImplementedError("AdapterCore.update_manifest")
 
+    def purge(self):
+        """delete all contents from database"""
+        raise NotImplementedError("AdapterCore.purge")
+
 
 

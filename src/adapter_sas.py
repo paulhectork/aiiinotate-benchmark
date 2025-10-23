@@ -109,3 +109,7 @@ class AdapterSas(AdapterCore):
         """update an annotation"""
         raise NotImplementedError("AdapterSas.update_manifest")
 
+    def purge(self):
+        """delete all contents from database"""
+        raise NotImplementedError("AdapterSas.purge")
+
