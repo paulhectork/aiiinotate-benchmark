@@ -48,7 +48,7 @@ class Benchmark:
         self.threads = 20
         self.ratio = 0.01  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases in a manifest will have annotations.
         self.n_annotation = 1000  # number of annotations per canvas.
-        self.n_read_iterations = 10  # number of iterations for read benchmarking: we will run read queries `n` times and then get the average time for a single query.
+        self.n_read_iterations = 50  # number of iterations for read benchmarking: we will run read queries `n` times and then get the average time for a single query.
         self.log = {
             "server_name": self.adapter.server_name,
             "time_unit": "s",
