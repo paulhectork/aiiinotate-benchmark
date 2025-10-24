@@ -115,26 +115,26 @@ Results are written to a JSON file in `out/`. They are written at the end of eac
 ```js
 {
   // global info
-  "server_name": <name of the annotations server benchmarked>,
-  "n_steps": <total number of steps in the benchmark>,
-  "threads": <number of threads used for inserts>.
-  "n_iterations": <number of iterations for read-time benchmarks>,
-  "ratio_canvas_with_annotations": <ratio of canvases with annotations to canvases without annotations, on a scale of 0..1>,
+  "server_name": "<name of the annotations server benchmarked>",
+  "n_steps": "<total number of steps in the benchmark>",
+  "threads": "<number of threads used for inserts>".
+  "n_iterations": "<number of iterations for read-time benchmarks>",
+  "ratio_canvas_with_annotations": "<ratio of canvases with annotations to canvases without annotations, on a scale of 0..1>",
   "time_unit": "seconds",
   "results": [
     // info on a single step
     {
       "step": {
-        "index": <step number>,
-        "n_manifest": <number of manifests inserted at this step>,
-        "n_canvas": <number of canvases inserted at this step>,
-        "n_annotations": <total number of annotations inserted at this step>,
-        "n_annotation_per_canvas": <number of annotations inserted per canvas with annotations>,
+        "index": "<step number>",
+        "n_manifest": "<number of manifests inserted at this step>",
+        "n_canvas": "<number of canvases inserted at this step>",
+        "n_annotations": "<total number of annotations inserted at this step>",
+        "n_annotation_per_canvas": "<number of annotations inserted per canvas with annotations>",
       },
-      "duration_insert_manifest": <time taken to insert all manifests in all threads>,
-      "duration_insert_annotation": <time taken to insert all annotations in all threads>,
-      "duration_read_annotation_list": <average time to read an annotation list>,
-      "duration_read_annotation": <average time to read a single annotation>,
+      "duration_insert_manifest": "<time taken to insert all manifests in all threads>",
+      "duration_insert_annotation": "<time taken to insert all annotations in all threads>",
+      "duration_read_annotation_list": "<average time to read an annotation list>",
+      "duration_read_annotation": "<average time to read a single annotation>",
     }
   ]
 }
