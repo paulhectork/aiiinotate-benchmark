@@ -5,8 +5,10 @@ import subprocess
 
 import requests
 
+from .constants import PATH_ROOT
 from .adapter_core import AdapterCore
-from .utils import PATH_ROOT, get_canvas_ids, get_manifest_short_id
+from .utils import get_canvas_ids, get_manifest_short_id
+
 
 class AdapterSas(AdapterCore):
     def __init__(self, endpoint):

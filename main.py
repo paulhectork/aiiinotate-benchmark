@@ -1,7 +1,7 @@
 import argparse
 
 from src.runner import runner
-from src.utils import STEPS_RANGE, N_STEPS_DEFAULT, RATIO_DEFAULT
+from src.constants import STEPS_GROUP_RANGE, N_STEPS_DEFAULT, RATIO_DEFAULT
 
 parser = argparse.ArgumentParser(
     prog="AiiinotateBenchmark",
@@ -23,7 +23,7 @@ parser.add_argument(
     "-n", "--nsteps",
     type=int,
     required=False,
-    help=f"number of step groups to run (in range {STEPS_RANGE}, 0=1st step)"
+    help=f"number of step groups to run (in range {STEPS_GROUP_RANGE}, 0=1st step)"
 )
 parser.add_argument(
     "-r", "--ratio",

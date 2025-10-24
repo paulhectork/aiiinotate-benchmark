@@ -5,18 +5,19 @@ from datetime import datetime
 from typing import List, Tuple, Dict
 from timeit import default_timer as timer
 
-from .utils import STEPS_GROUP, STEPS_FLAT, STEPS_RANGE, RATIO_DEFAULT, N_STEPS_DEFAULT, pprint, write_log
-from .adapter_core import AdapterCore, validate_endpoint
+from .utils import pprint, write_log
 from .adapter_sas import AdapterSas
 from .adapter_aiiinotate import AdapterAiiinotate
+from .adapter_core import AdapterCore, validate_endpoint
 from .multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
+from .constants import STEPS_GROUP, STEPS_FLAT, STEPS_GROUP_RANGE, RATIO_DEFAULT, N_STEPS_DEFAULT
 
 
 def validate_n_steps(n_steps: int):
     if (
         (not isinstance(n_steps, int))
-        or n_steps < STEPS_RANGE[0]
-        or n_steps > STEPS_RANGE[1]
+        or n_steps < STEPS_GROUP_RANGE[0]
+        or n_steps > STEPS_GROUP_RANGE[1]
     ):
         raise ValueError(f"validate_n_steps: 'steps' must be an integer, with steps <= {len(STEPS_GROUP)}, got '{n_steps}'" )
 

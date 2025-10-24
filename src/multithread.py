@@ -7,11 +7,11 @@ all multithreaded functions are grouped here because otherwise things will be ev
 from threading import Lock
 from multiprocessing.pool import ThreadPool
 from typing import Dict, List, Tuple, Callable, Optional
-import random
 
 from tqdm import tqdm
 
 from .generate import generate_annotation_list, generate_manifest
+
 
 def validate_n(n:int, threads:int) -> None:
     if n < threads:

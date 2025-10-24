@@ -5,55 +5,8 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional
 
-PATH_SRC = pathlib.Path(__file__).parent.resolve()
-PATH_ROOT = PATH_SRC.parent.resolve()
-PATH_DATA = pathlib.Path(PATH_ROOT / "data").resolve()
-PATH_MANIFEST_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_manifest.jsonld"
-PATH_ANNOTATION_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_annotation.jsonld"
-PATH_CANVAS_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_canvas.jsonld"
-PATH_OUT = PATH_ROOT / "out"
+from constants import PATH_OUT
 
-#NOTE: on the cli-side, seps are organised in grops: STEPS_GROUPS (1 group / number of manifests).
-# in the code-side, steps are not grouped: see STEPS_FLAT.
-# list of list of [n_canvas, n_manifest]
-STEPS_GROUP = [
-    [
-        [100, 100],
-        [100, 1000],
-        [100, 10000],
-    ],
-    [
-        [1000, 100],
-        [1000, 1000],
-        [1000, 10000],
-    ],
-    [
-        [10000, 100],
-        [10000, 1000],
-        [10000, 10000],
-    ],
-    [
-        [100000, 100],
-        [100000, 1000],
-        [100000, 10000],
-    ],
-    [
-        [1000000, 100],
-        [1000000, 1000],
-        [1000000, 10000],
-    ]
-]
-
-STEPS_RANGE = [0, len(STEPS_GROUP)]
-
-# flattened variant of the above, that will actually be used.
-STEPS_FLAT = list(chain.from_iterable(STEPS_GROUP))
-
-# number of step groups to run in the benchmark
-N_STEPS_DEFAULT = 2
-
-# canvases with annotations / canvases without annotations
-RATIO_DEFAULT= 0.01
 
 def read_json(fp: Path) -> Dict:
     with open(fp, mode="r", encoding="utf-8") as fh:
