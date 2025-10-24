@@ -90,11 +90,13 @@ Each step increases the number of manifests or annotations: `100 -> 10000 -> 100
 
 Steps `1.` and `2.` are done by generating and inserting fake manifests, annotation lists and annotations (see `src/generate.py`). To speed the process, insertions are parrallelized using multithreading with `Benchmark.threads` threads (usually, 20 threads).
 
+Number of annotations inserted per canvas is constant (see `Benchark.n_canvas`), usually 1000: when a anvas has annotations, we insert 1000 annotations on the canvas.
+
 Note that **insert times are purely indicative**. They are included as part of the benchmark results, but to time real insert times on Aiiinotate, we would need to use manifests that exist and can be accessed through HTTP.
 
 ### Read-time benchmarks
 
-For Aiiinotate, step `3.` consists of:
+Step `3.` is single threaded. For Aiiinotate, step `3.` consists of:
 - reading all annotations for a single canvas in a single manifests (which demands to scan all annotations to find their target canvas)
 - reading a single annotation (which demands to scan all annotation's `@id`)
 - repeating that process `Benchmark.n_iterations` times (usually 50 times)
@@ -104,7 +106,7 @@ For SAS, the process is the same, but we don't benchmark time to read a single a
 
 ### Purging
 
-At the end of a step, we delete all database contents to start again with a fresh database. With Aiiinotate, this is done using `mongosh` commands in a Bash subprocess.
+Step `4.` deletes all database contents to start the next step with a fresh database. With Aiiinotate, this is done using `mongosh` commands in a Bash subprocess.
 
 ---
 
