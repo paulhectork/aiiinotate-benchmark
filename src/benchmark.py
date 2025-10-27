@@ -91,9 +91,9 @@ class Benchmark:
             "n_annotation_per_canvas": self.n_annotation,
         }
 
-    def inserts(self):
+    def populate(self):
         """
-        insert annotations and annotation lists
+        before starting the benchmark, insert annotations and annotation lists to the server.
         NOTE: this isn't really a step of the benchmark as much as it is a preparatory step, but we log times just in case.
             in more detail: in Aiiinotate, a big insert bottleneck is to fetch the manifest for each annotation's target, index the manifest and get annotation's canvas index, which we can't replicate.
         """
@@ -140,7 +140,7 @@ class Benchmark:
 
     def read(self, list_id_canvas:List[str]):
         """
-        this is actually what we're really interested in: read time benchmarking.
+        read time benchmarks
 
         :param list_id_canvas: canvases containing annotations
         """
@@ -171,6 +171,16 @@ class Benchmark:
             d_read_annotation = (e-s) / self.n_iterations
 
         return d_read_annotation_list, d_read_annotation
+
+    def write(self):
+        """
+        write time benchmarks
+        """
+
+    def update(self):
+        """
+        update time benchmarks
+        """
 
     def purge(self, list_id_canvas_annotations: List[str] = []):
         """
@@ -234,7 +244,7 @@ class Benchmark:
         print(banner_start)
 
         try:
-            d_insert_manifest, d_insert_annotation, list_id_canvas_full, list_id_canvas_annotations = self.inserts()
+            d_insert_manifest, d_insert_annotation, list_id_canvas_full, list_id_canvas_annotations = self.populate()
             log["duration_insert_manifest"] = d_insert_manifest
             log["duration_insert_annotation"] = d_insert_annotation
             d_read_annotation_list, d_read_annotation = self.read(list_id_canvas_annotations)
