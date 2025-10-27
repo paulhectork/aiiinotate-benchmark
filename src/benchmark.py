@@ -37,6 +37,10 @@ def validate_ratio(r) -> None:
             raise ValueError(f"validate_ratio: ratio must be a float in range 0..1, got '{r}' (type {type('r')})")
     return
 
+def validate_nowrite(nowrite) -> None:
+    if not isinstance(nowrite, bool):
+        raise TypeError(f"validate_nowrite: 'nowrite' must be bool, got {nowrite} (type={type(nowrite)})")
+
 class Benchmark:
     def __init__(
         self,
@@ -44,7 +48,8 @@ class Benchmark:
         server: str,
         n_steps: int = N_STEPS_DEFAULT,
         ratio: float|None = RATIO_DEFAULT,
-        threads: int|None = THREADS_DEFAULT
+        threads: int|None = THREADS_DEFAULT,
+        nowrite: bool = False,
     ):
         """
         :param steps: steps of the benchmark, i.e [ (<step 1: number of manifests>, <step 1  number of canvases / manifest>), (<step 2: # manifests>, <step 2 # canvases / manifest>), ... ]
@@ -56,6 +61,7 @@ class Benchmark:
         validate_server(server)
         validate_endpoint(endpoint)
         validate_threads(threads)
+        validate_nowrite(nowrite)
 
         adapter: AdapterCore
         if server == "aiiinotate":
@@ -72,6 +78,7 @@ class Benchmark:
         self.steps = steps
         self.ratio = ratio if ratio is not None else RATIO_DEFAULT  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases in a manifest will have annotations.
         self.threads = threads
+        self.nowrite = nowrite
 
         self.n_annotation = 1000  # number of annotations per canvas.
         self.n_iterations = 50  # number of iterations for read benchmarking: we will run read queries `n` times and then get the average time for a single query.
@@ -101,6 +108,7 @@ class Benchmark:
         """
         sample a list to randomly select `self.n_iterations` values, or return the whole list if it's smaller than `self.n_iterations`.
         """
+        #NOTE: THIS WILL BREAK THE BENCHMARKS if using it in benchmarks that are running several iterations, if `self.n_iterations > len(list_)`: average calculation will be broken !
         return random.sample(list_, min(self.n_iterations, len(list_)))
 
     def populate(self):
@@ -165,7 +173,7 @@ class Benchmark:
         for id_canvas in list_id_canvas:
             # SAS returns Annotation[], while aiiinotate returns an AnnotationList.
             annotations_data = self.adapter.get_annotation_list(id_canvas)
-            if self.adapter.server_name == "aiiinotate":
+            if self.adapter.server_name == "Aiiinotate":
                 list_annotations.extend(annotations_data["resources"])
             else:
                 list_annotations.extend(annotations_data)
@@ -192,39 +200,56 @@ class Benchmark:
         write time benchmarks
         """
         list_id_canvas = []
-        list_manifest = generate_manifests(self.n_iterations, self.step_current["n_canvas"])
+        generator_manifest = generate_manifests(self.n_iterations, self.step_current["n_canvas"])
         s = timer()
-        for manifest in list_manifest:
+        for manifest in generator_manifest:
             canvases = self.adapter.insert_manifest(manifest)
             list_id_canvas.extend(canvases)
         e = timer()
         d_write_manifest = (e-s) / self.n_iterations
 
-        list_annotation = generate_annotations(random.sample(list_id_canvas, self.n_iterations))
+        generator_annotation = generate_annotations(random.sample(list_id_canvas, self.n_iterations))
         s = timer()
-        for annotation in list_annotation:
+        for annotation in generator_annotation:
             self.adapter.insert_annotation(annotation)
         e = timer()
         d_write_annotation = (e-s) / self.n_iterations
 
         d_write_annotation_list = None
         if self.adapter.server_name == "Aiiinotate":
-            list_annotation_list = generate_annotation_lists(
+            generator_annotation_list = generate_annotation_lists(
                 self.sample_for_iteration(list_id_canvas),
                 self.n_annotation
             )
             s = timer()
-            for annotation_list in list_annotation_list:
+            for annotation_list in generator_annotation_list:
                 self.adapter.insert_annotation_list(annotation_list)
             e = timer()
             d_write_annotation_list = (e-s) / self.n_iterations
 
         return d_write_manifest, d_write_annotation, d_write_annotation_list
 
-    def update(self):
+    def update(self, list_id_canvas: List[str]):
         """
         update time benchmarks
         """
+        list_id_canvas = self.sample_for_iteration(list_id_canvas)
+        # we must convert the generator to a list in order to access its contents twice
+        list_annotation = [
+            annotation for annotation in generate_annotations(list_id_canvas)
+        ]
+        for annotation in list_annotation:
+            self.adapter.insert_annotation(annotation)
+        s = timer()
+        for annotation in list_annotation:
+            print("hello !!!!!!!!!!!!!!!")
+            print(annotation)
+            self.adapter.update_annotation(annotation)
+        e = timer()
+        d_update_annotation = (e-s) / self.n_iterations
+
+        return d_update_annotation
+
 
     def purge(self):
         """
@@ -270,6 +295,9 @@ class Benchmark:
             if d_write_annotation_list is not None:
                 log["duration_write_annotation_list"] = d_write_annotation_list
 
+            d_update_annotation = self.update(list_id_canvas_annotations)
+            log["duration_update_annotation"] = d_update_annotation
+
         finally:
             self.purge()
             self.step_current = {}
@@ -282,8 +310,12 @@ class Benchmark:
         return
 
     def run(self):
+        def write():
+            if not self.nowrite:
+                write_log(self.adapter.server_name, len(self.steps), timestamp, self.log)
+            return
+
         timestamp = datetime.now().strftime(r'%Y-%m-%d-%H:%M:%S')
-        write = lambda: write_log(self.adapter.server_name, len(self.steps), timestamp, self.log)
         print("Global benchmark parameters:")
         pprint(self.log)
         try:

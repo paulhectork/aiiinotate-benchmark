@@ -103,7 +103,7 @@ class AdapterSas(AdapterCore):
             r_all.append(self.delete_annotation(annotation["@id"]))
         return 1 if len(set(r_all)) == 1 and r_all[0] == 1 else 0
 
-    def update_annotation(self, id_annotation):
+    def update_annotation(self, annotation: Dict):
         """update an annotation"""
         raise NotImplementedError("AdapterSas.update_annotation")
 

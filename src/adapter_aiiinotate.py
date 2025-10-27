@@ -97,9 +97,15 @@ class AdapterAiiinotate(AdapterCore):
         r = requests.delete(f"{self.endpoint}/annotations/2/delete?manifestShortId={quote_plus(id_manifest)}")
         return 1 if r.json()["deletedCount"] > 0 else 0
 
-    def update_annotation(self, id_annotation):
-        """update an annotation"""
-        raise NotImplementedError("AdapterCore.update_annotation")
+    def update_annotation(self, annotation: Dict):
+        r = requests.post(
+            f"{self.endpoint}/annotations/2/update",
+            json=annotation
+        )
+        print("#####################################")
+        pprint(r.json())
+        print("#####################################")
+        return 1 if r.json()["modifiedCount"] > 1 else 0
 
     def update_manifest(self, id_manifest):
         """update an annotation"""

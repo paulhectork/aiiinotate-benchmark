@@ -64,7 +64,7 @@ class AdapterCore:
     def delete_annotations_for_manifest(self, id_manifest: str):
         raise NotImplementedError("AdapterCore.delete_annotations_for_manifest")
 
-    def update_annotation(self, id_annotation):
+    def update_annotation(self, annotation: Dict):
         """update an annotation"""
         raise NotImplementedError("AdapterCore.update_annotation")
 

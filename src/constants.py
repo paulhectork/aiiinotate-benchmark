@@ -14,11 +14,11 @@ PATH_OUT = PATH_ROOT / "out"
 # in the code-side, steps are not grouped: see STEPS_FLAT.
 # list of list of [n_canvas, n_manifest]
 STEPS_GROUP = [
-    [
-        [10, 10],
-        [10,100],
-        [10,100],
-    ],
+    # [
+    #     [10, 10],
+    #     [10,100],
+    #     [10,100],
+    # ],
     [
         [100, 100],
         [100, 1000],

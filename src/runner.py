@@ -7,12 +7,14 @@ def runner(
     endpoint: str,
     n_steps: int = N_STEPS_DEFAULT,
     ratio: float|None = RATIO_DEFAULT,
-    threads: int|None = THREADS_DEFAULT
+    threads: int|None = THREADS_DEFAULT,
+    nowrite: bool = False,
 ) -> None:
     Benchmark(
         server=server,
         endpoint=endpoint,
         n_steps=n_steps,
         ratio=ratio,
-        threads=threads
+        threads=threads,
+        nowrite=nowrite
     ).run()

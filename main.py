@@ -20,7 +20,7 @@ parser.add_argument(
     help="the endpoint on which the annotation server is listening (including http(s) scheme and port, if on localhost)"
 )
 parser.add_argument(
-    "-n", "--nsteps",
+    "-s", "--steps",
     type=int,
     required=False,
     help=f"number of step groups to run (in range {STEPS_GROUP_RANGE}, 0=1st step)"
@@ -39,13 +39,20 @@ parser.add_argument(
     default=THREADS_DEFAULT,
     help=f"number of threads to use when populating database (default={THREADS_DEFAULT})"
 )
+parser.add_argument(
+    "-n", "--nowrite",
+    action="store_true",
+    default=False,
+    help="do not write the log to file"
+)
 
 if __name__ == "__main__":
     args = parser.parse_args()
     runner(
         server=args.server,
         endpoint=args.endpoint,
-        n_steps=args.nsteps,
+        n_steps=args.steps,
         ratio=args.ratio,
-        threads=args.threads
+        threads=args.threads,
+        nowrite=args.nowrite
     )
