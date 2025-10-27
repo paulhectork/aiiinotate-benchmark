@@ -5,12 +5,13 @@ from datetime import datetime
 from typing import List, Tuple, Dict
 from timeit import default_timer as timer
 
-from .utils import pprint, write_log
+from .utils import pprint, write_log, get_manifest_short_id
 from .adapter_sas import AdapterSas
 from .adapter_aiiinotate import AdapterAiiinotate
 from .adapter_core import AdapterCore, validate_endpoint
 from .multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
 from .constants import STEPS_GROUP, STEPS_FLAT, STEPS_GROUP_RANGE, RATIO_DEFAULT, N_STEPS_DEFAULT
+from .generate import generate_annotations, generate_annotation_lists, generate_manifests
 
 
 def validate_n_steps(n_steps: int):
@@ -19,7 +20,7 @@ def validate_n_steps(n_steps: int):
         or n_steps < STEPS_GROUP_RANGE[0]
         or n_steps > STEPS_GROUP_RANGE[1]
     ):
-        raise ValueError(f"validate_n_steps: 'steps' must be an integer, with steps <= {len(STEPS_GROUP)}, got '{n_steps}'" )
+        raise ValueError(f"validate_n_steps: 'steps' must be an integer, with steps in {STEPS_GROUP_RANGE}, got '{n_steps}'" )
 
 def validate_server(server:str) -> None:
     if server not in ["aiiinotate", "sas"]:
@@ -36,10 +37,8 @@ class Benchmark:
     def __init__(
         self,
         endpoint: str,
-        # adapter: AdapterCore,
         server: str,
         n_steps: int = N_STEPS_DEFAULT,
-        # steps: List[List[int]] | List[Tuple[int,int]],
         ratio: float|None = RATIO_DEFAULT,
     ):
         """
@@ -60,6 +59,7 @@ class Benchmark:
 
         # STEPS_GROUP is used to count steps in the CLI, STEPS_FLAT is actually used for the benchmark
         # => select the values in STEPS_FLAT based on `n_steps`
+        #n_steps += 1
         steps: list = STEPS_FLAT[:3*n_steps]
 
         self.adapter = adapter
@@ -70,7 +70,7 @@ class Benchmark:
         self.n_iterations = 50  # number of iterations for read benchmarking: we will run read queries `n` times and then get the average time for a single query.
         self.threads = 20
 
-        self.step_current = None
+        self.step_current = {}
         self.log = {
             "server_name": self.adapter.server_name,
             "n_steps": 3 * n_steps,
@@ -112,7 +112,7 @@ class Benchmark:
             n_canvas=n_canvas,
         )
         e = timer()
-        d_insert_manifest = e-s
+        d_populate_manifest = e-s
         assert len(list_id_canvas) != 0
 
         # insert annotations
@@ -133,10 +133,10 @@ class Benchmark:
             pbar_desc=f"inserting {self.n_annotation * len(list_id_canvas_sample)} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
         )
         e = timer()
-        d_insert_annotation = e-s
+        d_populate_annotation = e-s
         # NOTE: there's always an error in SAS insertions, so the check below fails.
         # assert len(list_id_canvas_sample) == len(list_id_canvas_annotations)
-        return d_insert_manifest, d_insert_annotation, list_id_canvas_full, list_id_canvas_annotations
+        return d_populate_manifest, d_populate_annotation, list_id_canvas_full, list_id_canvas_annotations
 
     def read(self, list_id_canvas:List[str]):
         """
@@ -172,10 +172,36 @@ class Benchmark:
 
         return d_read_annotation_list, d_read_annotation
 
-    def write(self):
+    def write(self) -> Tuple[float, float, float|None]:
         """
         write time benchmarks
         """
+        list_id_canvas = []
+        list_manifest = generate_manifests(self.n_iterations, self.step_current["n_canvas"])
+        s = timer()
+        for manifest in list_manifest:
+            canvases = self.adapter.insert_manifest(manifest)
+            list_id_canvas.extend(canvases)
+        e = timer()
+        d_write_manifest = (e-s) / self.n_iterations
+
+        list_annotation = generate_annotations(random.sample(list_id_canvas, self.n_iterations))
+        s = timer()
+        for annotation in list_annotation:
+            self.adapter.insert_annotation(annotation)
+        e = timer()
+        d_write_annotation = (e-s) / self.n_iterations
+
+        d_write_annotation_list = None
+        if self.adapter.server_name == "Aiiinotate":
+            list_annotation_list = generate_annotation_lists(random.sample(list_id_canvas, self.n_iterations), self.n_annotation)
+            s = timer()
+            for annotation_list in list_annotation_list:
+                self.adapter.insert_annotation_list(annotation_list)
+            e = timer()
+            d_write_annotation_list = (e-s) / self.n_iterations
+
+        return d_write_manifest, d_write_annotation, d_write_annotation_list
 
     def update(self):
         """
@@ -186,24 +212,12 @@ class Benchmark:
         """
         at the end of a step, delete all contents from a db.
         """
-        list_id_manifest = self.adapter.get_id_manifest_list()
         if self.adapter.server_name == "Aiiinotate":
             self.adapter.purge()
-            # mt_delete(
-            #     data=list_id_manifest,
-            #     func=self.adapter.delete_annotations_for_manifest,
-            #     threads=self.threads,
-            #     pbar_desc=f"deleting all annotations from {len(list_id_manifest)} manifests (threads={self.threads})"
-            # )
-            # mt_delete(
-            #     data=list_id_manifest,
-            #     func=self.adapter.delete_manifest,
-            #     threads=self.threads,
-            #     pbar_desc=f"deleting {len(list_id_manifest)} manifests (threads={self.threads})"
-            # )
         else:
             self.adapter.purge()
             # #NOTE: with SAS, we can't delete manifests, so we just delete annotations.
+            # list_id_manifest = self.adapter.get_id_manifest_list()
             # if len(list_id_canvas_annotations):
             #     mt_delete(
             #         data=list_id_canvas_annotations,
@@ -231,12 +245,8 @@ class Benchmark:
         list_id_canvas_annotations = []
         step_dict = self.step_to_dict(idx_step, step)
         self.step_current = step_dict
-        log = {
-            "step": step_dict,
-            "duration_insert_manifest": None,
-            "duration_insert_annotation": None,
-            "duration_read_annotation_list": None,
-        }
+        log = {}
+        log["step"] = step_dict
 
         t_width = shutil.get_terminal_size((80,20))[0]
         banner_start = f"\nSTART STEP #{idx_step}: {step_dict}\n{'*' * t_width}\n"
@@ -244,17 +254,24 @@ class Benchmark:
         print(banner_start)
 
         try:
-            d_insert_manifest, d_insert_annotation, list_id_canvas_full, list_id_canvas_annotations = self.populate()
-            log["duration_insert_manifest"] = d_insert_manifest
-            log["duration_insert_annotation"] = d_insert_annotation
+            d_populate_manifest, d_populate_annotation, list_id_canvas_full, list_id_canvas_annotations = self.populate()
+            log["duration_populate_manifest"] = d_populate_manifest
+            log["duration_populate_annotation"] = d_populate_annotation
+
             d_read_annotation_list, d_read_annotation = self.read(list_id_canvas_annotations)
             log["duration_read_annotation_list"] = d_read_annotation_list
             if d_read_annotation is not None:
                 log["duration_read_annotation"] = d_read_annotation
 
+            d_write_manifest, d_write_annotation, d_write_annotation_list = self.write()
+            log["duration_write_manifest"] = d_write_manifest
+            log["duration_write_annotation"] = d_write_annotation
+            if d_write_annotation_list is not None:
+                log["duration_write_annotation_list"] = d_write_annotation_list
+
         finally:
             self.purge(list_id_canvas_annotations)
-            self.step_current = None
+            self.step_current = {}
             self.log["results"].append(log)
             print(f"\nSTEP #{idx_step} RESULTS:")
             pprint(log)

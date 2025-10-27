@@ -42,7 +42,7 @@ STEPS_GROUP = [
 ]
 
 # used to define n_steps in cli
-STEPS_GROUP_RANGE = [0, len(STEPS_GROUP)]
+STEPS_GROUP_RANGE = [1, len(STEPS_GROUP)]
 
 # flattened variant of the above, that will actually be used.
 STEPS_FLAT = list(chain.from_iterable(STEPS_GROUP))

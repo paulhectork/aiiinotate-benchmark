@@ -72,14 +72,27 @@ def generate_manifest(n_canvas:int=1000) -> Dict:
     manifest["sequences"][0]["canvases"] = generate_canvases(id_manifest, n_canvas)
     return manifest
 
+def generate_annotations(list_id_canvas:List[str]) -> Generator[Dict, List[int], None]:
+    """
+    generator creating 1 annotation per id_canvas in `list_id_canvas`
+    """
+    for id_canvas in list_id_canvas:
+        id_manifest_short = get_manifest_short_id(id_canvas)
+        yield generate_annotation(id_manifest_short, id_canvas)
+    return
+
 def generate_manifests(n_manifest:int=1000, n_canvas:int=1000) -> Generator[Dict, Tuple[int,int], None]:
-    # for _ in tqdm(range(n_manifest), desc=f"generating {n_manifest} manifests with {n_canvas} canvases"):
+    """
+    generator creating `n_manifest` manifests with `n_canvas` canvases each
+    """
     for _ in range(n_manifest):
         yield generate_manifest(n_canvas)
     return
 
-# TODO: find a way to pass list_id_canvas or change code.
 def generate_annotation_lists(list_id_canvas: List[str], n_annotation:int=100) -> Generator[Dict, Tuple[List[str], int], None]:
-    for id_canvas in tqdm(list_id_canvas, desc=f"generating {len(list_id_canvas)} annotation lists with {n_annotation} annotations each"):
+    """
+    generator creating 1 annotation list per id_canvas in `list_id_canvas`, with `n_annotation` annotations each
+    """
+    for id_canvas in list_id_canvas:
         yield generate_annotation_list(id_canvas, n_annotation)
     return

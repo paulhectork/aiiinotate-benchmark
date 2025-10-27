@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from constants import PATH_OUT
+from .constants import PATH_OUT
 
 
 def read_json(fp: Path) -> Dict:

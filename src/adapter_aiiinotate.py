@@ -34,6 +34,18 @@ class AdapterAiiinotate(AdapterCore):
             else []
         )
 
+    def insert_annotation(self, annotation:Dict):
+        """insert a single annotation"""
+        r = requests.post(
+            f"{self.endpoint}/annotations/2/create",
+            json=annotation
+        )
+        r_json = r.json()
+        if "insertedIds" in r_json and len(r_json["insertedIds"]):
+            return 1
+        else:
+            return 0
+
     def insert_annotation_list(self, annotation_list: Dict):
         """insert an AnnotationList"""
         r = requests.post(
