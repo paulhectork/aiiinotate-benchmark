@@ -11,7 +11,7 @@ from .adapter_aiiinotate import AdapterAiiinotate
 from .adapter_core import AdapterCore, validate_endpoint
 from .multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
 from .constants import STEPS_GROUP, STEPS_FLAT, STEPS_GROUP_RANGE, RATIO_DEFAULT, N_STEPS_DEFAULT, THREADS_DEFAULT
-from .generate import generate_annotations, generate_annotation_lists, generate_manifests
+from .generate import generate_annotations, generate_annotation_lists, generate_manifests, mkstr
 
 
 def validate_threads(threads: int|None):
@@ -242,15 +242,12 @@ class Benchmark:
         """
         list_id_canvas = self.sample_for_iteration(list_id_canvas)
         # we must convert the generator to a list in order to access its contents twice
-        list_annotation = [
-            annotation for annotation in generate_annotations(list_id_canvas)
-        ]
-        for annotation in list_annotation:
-            self.adapter.insert_annotation(annotation)
+        list_annotation = self.get_annotations_for_canvases(list_id_canvas)
         s = timer()
         for annotation in list_annotation:
             print("hello !!!!!!!!!!!!!!!")
             print(annotation)
+            annotation["selector"]["value"] = f"xywh=665,666,667,668"
             self.adapter.update_annotation(annotation)
         e = timer()
         d_update_annotation = (e-s) / self.n_iterations
