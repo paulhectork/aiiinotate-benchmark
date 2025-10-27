@@ -7,7 +7,7 @@ import requests
 
 from .constants import PATH_ROOT
 from .adapter_core import AdapterCore
-from .utils import get_canvas_ids, get_manifest_short_id
+from .utils import get_canvas_ids, get_manifest_short_id, pprint
 from .multithread import mt_delete
 
 
@@ -105,7 +105,14 @@ class AdapterSas(AdapterCore):
 
     def update_annotation(self, annotation: Dict):
         """update an annotation"""
-        raise NotImplementedError("AdapterSas.update_annotation")
+        r = requests.post(
+            f"{self.endpoint}/annotation/update",
+            json=annotation
+        )
+        if "@id" in r.json().keys():
+            return 1
+        else:
+            return 0
 
     def update_manifest(self, id_manifest):
         """update an annotation"""
