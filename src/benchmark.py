@@ -5,6 +5,8 @@ from datetime import datetime
 from typing import List, Tuple, Dict
 from timeit import default_timer as timer
 
+from tqdm import tqdm
+
 from .utils import pprint, write_log, get_manifest_short_id
 from .adapter_sas import AdapterSas
 from .adapter_aiiinotate import AdapterAiiinotate
@@ -158,12 +160,21 @@ class Benchmark:
         # assert len(list_id_canvas_sample) == len(list_id_canvas_annotations)
         return d_populate_manifest, d_populate_annotation, list_id_canvas_full, list_id_canvas_annotations
 
-    def get_annotations_for_canvases(self, list_id_canvas: List[str]):
+    def get_annotations_for_canvases(self, list_id_canvas: List[str], is_benchmark: bool = False):
         """
         get all annotations on canvases whose @ids are in `list_id_canvas`
         """
         list_annotations = []
-        for id_canvas in list_id_canvas:
+        desc = (
+            f"benchmark: read, {len(list_id_canvas)} annotation lists"
+            if is_benchmark
+            else f"reading annotation lists for {len(list_id_canvas)} canvases"
+        )
+        for id_canvas in tqdm(
+            list_id_canvas,
+            total=len(list_id_canvas),
+            desc=desc
+        ):
             # SAS returns Annotation[], while aiiinotate returns an AnnotationList.
             annotations_data = self.adapter.get_annotation_list(id_canvas)
             if self.adapter.server_name == "Aiiinotate":
@@ -182,7 +193,7 @@ class Benchmark:
         list_id_canvas = self.sample_for_iteration(list_id_canvas)
 
         s = timer()
-        list_annotations = self.get_annotations_for_canvases(list_id_canvas)
+        list_annotations = self.get_annotations_for_canvases(list_id_canvas, True)
         e = timer()
         d_read_annotation_list = (e-s) / self.n_iterations
 
@@ -194,7 +205,11 @@ class Benchmark:
                 for _ in range(self.n_iterations)
             ]
             s = timer()
-            for id_annotation in list_id_annotation:
+            for id_annotation in tqdm(
+                list_id_annotation,
+                total=len(list_id_annotation),
+                desc=f"benchmark: read, {len(list_id_annotation)} annotations"
+            ):
                 annotation = self.adapter.get_annotation(id_annotation)  # pyright: ignore
                 assert "@id" in annotation.keys() and annotation["@id"] == id_annotation
             e = timer()
@@ -217,7 +232,11 @@ class Benchmark:
 
         generator_annotation = generate_annotations(random.sample(list_id_canvas, self.n_iterations))
         s = timer()
-        for annotation in generator_annotation:
+        for annotation in tqdm(
+            generator_annotation,
+            total=self.n_iterations,
+            desc=f"benchmark: write, {self.n_iterations} annotations"
+        ):
             self.adapter.insert_annotation(annotation)
         e = timer()
         d_write_annotation = (e-s) / self.n_iterations
@@ -229,7 +248,11 @@ class Benchmark:
                 self.n_annotation
             )
             s = timer()
-            for annotation_list in generator_annotation_list:
+            for annotation_list in tqdm(
+                generator_annotation_list,
+                total=self.n_iterations,
+                desc=f"benchmark: write, {self.n_iterations} annotation lists"
+            ):
                 self.adapter.insert_annotation_list(annotation_list)
             e = timer()
             d_write_annotation_list = (e-s) / self.n_iterations
@@ -241,13 +264,16 @@ class Benchmark:
         update time benchmarks
         """
         list_id_canvas = self.sample_for_iteration(list_id_canvas)
-        # we must convert the generator to a list in order to access its contents twice
-        list_annotation = self.get_annotations_for_canvases(list_id_canvas)
+        list_annotation = self.get_annotations_for_canvases(list_id_canvas, False)
+        list_annotation = self.sample_for_iteration(list_annotation)
         s = timer()
-        for annotation in list_annotation:
-            print("hello !!!!!!!!!!!!!!!")
-            print(annotation)
-            annotation["selector"]["value"] = f"xywh=665,666,667,668"
+        for annotation in tqdm(
+            list_annotation,
+            total=len(list_annotation),
+            desc=f"benchmark: updates, {len(list_annotation)} annotations"
+        ):
+            r = sorted(random.sample(range(0,1000), 4))  # 4 random numbers in range 0..1000
+            annotation["on"]["selector"]["value"] = f"xywh={r[0]},{r[1]},{r[2]},{r[3]}"
             self.adapter.update_annotation(annotation)
         e = timer()
         d_update_annotation = (e-s) / self.n_iterations

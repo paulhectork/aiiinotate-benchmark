@@ -102,9 +102,6 @@ class AdapterAiiinotate(AdapterCore):
             f"{self.endpoint}/annotations/2/update",
             json=annotation
         )
-        print("#####################################")
-        pprint(r.json())
-        print("#####################################")
         return 1 if r.json()["modifiedCount"] > 1 else 0
 
     def update_manifest(self, id_manifest):
