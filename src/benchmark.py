@@ -158,18 +158,11 @@ class Benchmark:
         # assert len(list_id_canvas_sample) == len(list_id_canvas_annotations)
         return d_populate_manifest, d_populate_annotation, list_id_canvas_full, list_id_canvas_annotations
 
-    def read(self, list_id_canvas:List[str]):
+    def get_annotations_for_canvases(self, list_id_canvas: List[str]):
         """
-        read time benchmarks
-
-        :param list_id_canvas: canvases containing annotations
+        get all annotations on canvases whose @ids are in `list_id_canvas`
         """
-        list_id_canvas = self.sample_for_iteration(list_id_canvas)
         list_annotations = []
-
-        d_read_annotation = None
-
-        s = timer()
         for id_canvas in list_id_canvas:
             # SAS returns Annotation[], while aiiinotate returns an AnnotationList.
             annotations_data = self.adapter.get_annotation_list(id_canvas)
@@ -177,9 +170,23 @@ class Benchmark:
                 list_annotations.extend(annotations_data["resources"])
             else:
                 list_annotations.extend(annotations_data)
+        return list_annotations
+
+
+    def read(self, list_id_canvas:List[str]):
+        """
+        read time benchmarks
+
+        :param list_id_canvas: canvases containing annotations
+        """
+        list_id_canvas = self.sample_for_iteration(list_id_canvas)
+
+        s = timer()
+        list_annotations = self.get_annotations_for_canvases(list_id_canvas)
         e = timer()
         d_read_annotation_list = (e-s) / self.n_iterations
 
+        d_read_annotation = None
         if self.adapter.server_name == "Aiiinotate":
             # list of randomly selected annotation @ids.
             list_id_annotation = [
