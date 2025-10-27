@@ -1,7 +1,7 @@
 import argparse
 
 from src.runner import runner
-from src.constants import STEPS_GROUP_RANGE, N_STEPS_DEFAULT, RATIO_DEFAULT
+from src.constants import STEPS_GROUP_RANGE, N_STEPS_DEFAULT, RATIO_DEFAULT, THREADS_DEFAULT
 
 parser = argparse.ArgumentParser(
     prog="AiiinotateBenchmark",
@@ -32,6 +32,13 @@ parser.add_argument(
     default=RATIO_DEFAULT,
     help="ratio of canvases with annotations to canvases without annotations (in range 0..1)"
 )
+parser.add_argument(
+    "-t", "--threads",
+    type=int,
+    required=False,
+    default=THREADS_DEFAULT,
+    help=f"number of threads to use when populating database (default={THREADS_DEFAULT})"
+)
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -39,5 +46,6 @@ if __name__ == "__main__":
         server=args.server,
         endpoint=args.endpoint,
         n_steps=args.nsteps,
-        ratio=args.ratio
+        ratio=args.ratio,
+        threads=args.threads
     )

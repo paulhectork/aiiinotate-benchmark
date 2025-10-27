@@ -15,6 +15,11 @@ PATH_OUT = PATH_ROOT / "out"
 # list of list of [n_canvas, n_manifest]
 STEPS_GROUP = [
     [
+        [10, 10],
+        [10,100],
+        [10,100],
+    ],
+    [
         [100, 100],
         [100, 1000],
         [100, 10000],
@@ -49,6 +54,9 @@ STEPS_FLAT = list(chain.from_iterable(STEPS_GROUP))
 
 # number of step groups to run in the benchmark
 N_STEPS_DEFAULT = 2
+
+# default number of threads to use
+THREADS_DEFAULT = 20
 
 # canvases with annotations / canvases without annotations
 RATIO_DEFAULT= 0.01

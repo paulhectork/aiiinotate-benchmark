@@ -1,8 +1,0 @@
-{
-  "server_name": "SimpleAnnotationServer",
-  "time_unit": "s",
-  "threads": 20,
-  "n_iterations": 50,
-  "ratio_canvas_with_annotations": "0.01%",
-  "results": []
-}

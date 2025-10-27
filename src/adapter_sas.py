@@ -8,6 +8,7 @@ import requests
 from .constants import PATH_ROOT
 from .adapter_core import AdapterCore
 from .utils import get_canvas_ids, get_manifest_short_id
+from .multithread import mt_delete
 
 
 class AdapterSas(AdapterCore):
@@ -78,7 +79,6 @@ class AdapterSas(AdapterCore):
     def delete_annotation(self, id_annotation: str):
         """delete an annotation"""
         r = requests.delete(f"{self.endpoint}/annotation/destroy?uri={quote_plus(id_annotation)}")
-        print(r.status_code)
         if r.status_code == 204:
             return 1
         else:
@@ -111,20 +111,33 @@ class AdapterSas(AdapterCore):
         """update an annotation"""
         raise NotImplementedError("AdapterSas.update_manifest")
 
-    #TODO: fix OR find a way to work with that.
-    def purge(self):
+    def purge_hard(self):
         """
         delete all contents from database.
-        we do this crudely by simply deleting the `data` directory, which SAS will recreate at next reboot.
 
-        NOTE: 1. after doing this, the SAS app should become unusable.
-        NOTE: 2. the effects of this are only visible when stopping the app after and rebooting it.
-        NOTE: 3. this does not affect the indexation of manifests (written to memory and not to file ?)
+        NOTE: this is unused: after this, the SAS app should be restarted, which doesn't fit our use case (restart once every function has run)
+
+        NOTE: after doing this, the SAS app becomes unusable.
+        NOTE: this does not affect the indexation of manifests (written to memory and not to file ?)
         """
         path_sas_data = PATH_ROOT / "SimpleAnnotationServer" / "data"
         if not path_sas_data.exists():
             raise FileNotFoundError(f"AdapterSas.purge: data directory not found and cannot be purged, at '{path_sas_data}'")
         subprocess.run(f"rm -r \"{path_sas_data}\"", shell=True)
+        return
+
+    def purge(self, threads:int):  #pyright: ignore
+        """
+        delete all contents from the database using
+        """
+        #NOTE: with SAS, we can't delete manifests, so we just delete annotations.
+        list_id_manifest = self.get_id_manifest_list()
+        mt_delete(
+            data=list_id_manifest,
+            func=self.delete_annotations_for_manifest,
+            threads=threads,
+            pbar_desc=f"deleting all annotations from {len(list_id_manifest)} manifests (threads={threads})"
+        )
         return
 
 
