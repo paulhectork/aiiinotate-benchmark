@@ -81,7 +81,7 @@ The benchmark is organized in several steps. Each step consists of:
 
 1. inserting manifests
 2. inserting annotations
-3. running read-time benchmarks
+3. running benchmarks
 4. purging the database.
 
 Each step increases the number of manifests or annotations: `100 -> 10000 -> 10000` manifests, `100 -> 1000 -> 10000` annotations.
@@ -94,15 +94,18 @@ Number of annotations inserted per canvas is constant (see `Benchark.n_canvas`),
 
 Note that **insert times are purely indicative**. They are included as part of the benchmark results, but to time real insert times on Aiiinotate, we would need to use manifests that exist and can be accessed through HTTP.
 
-### Read-time benchmarks
+### Benchmarks
 
-Step `3.` is single threaded. For Aiiinotate, step `3.` consists of:
+Step `3.` is single threaded. All processes are repeated `Benchmark.n_iterations` times (usually 50 times) and benchmark times are averaged for all operations (`(start-end) / n_iterations`). The benchmarks are:
+
 - reading all annotations for a single canvas in a single manifests (which demands to scan all annotations to find their target canvas)
 - reading a single annotation (which demands to scan all annotation's `@id`)
-- repeating that process `Benchmark.n_iterations` times (usually 50 times)
-- averaging the read time for both operations above.
+- writing a single annotation
+- writing an annotation list
+- updating a single annotation
+- deleting a single annotation
 
-For SAS, the process is the same, but we don't benchmark time to read a single anotation, since annotation URIs are not deferred in SAS.
+If a functionnality is not implemented by an annotation server, either the step is skipped or we implement a process that is equivalent using available routes (for example, inserting an annotation list on SAS is done by inserting all annotations individually).
 
 ### Purging
 
