@@ -115,9 +115,9 @@ class Benchmark:
 
     def populate(self):
         """
-        before starting the benchmark, insert annotations and annotation lists to the server.
+        before starting the benchmark, bulk insert annotations and annotation lists to the server.
         NOTE: this isn't really a step of the benchmark as much as it is a preparatory step, but we log times just in case.
-            in more detail: in Aiiinotate, a big insert bottleneck is to fetch the manifest for each annotation's target, index the manifest and get annotation's canvas index, which we can't replicate.
+        in more detail: in Aiiinotate, a big insert bottleneck is to fetch the manifest for each annotation's target, index the manifest and get annotation's canvas index, which we can't replicate.
         """
         n_manifest = self.step_current["n_manifest"]  # pyright:ignore
         n_canvas = self.step_current["n_canvas"]  # pyright:ignore
@@ -183,7 +183,6 @@ class Benchmark:
                 list_annotations.extend(annotations_data)
         return list_annotations
 
-
     def read(self, list_id_canvas:List[str]):
         """
         read time benchmarks
@@ -242,20 +241,19 @@ class Benchmark:
         d_write_annotation = (e-s) / self.n_iterations
 
         d_write_annotation_list = None
-        if self.adapter.server_name == "Aiiinotate":
-            generator_annotation_list = generate_annotation_lists(
-                self.sample_for_iteration(list_id_canvas),
-                self.n_annotation
-            )
-            s = timer()
-            for annotation_list in tqdm(
-                generator_annotation_list,
-                total=self.n_iterations,
-                desc=f"benchmark: write, {self.n_iterations} annotation lists"
-            ):
-                self.adapter.insert_annotation_list(annotation_list)
-            e = timer()
-            d_write_annotation_list = (e-s) / self.n_iterations
+        generator_annotation_list = generate_annotation_lists(
+            self.sample_for_iteration(list_id_canvas),
+            self.n_annotation
+        )
+        s = timer()
+        for annotation_list in tqdm(
+            generator_annotation_list,
+            total=self.n_iterations,
+            desc=f"benchmark: write, {self.n_iterations} annotation lists"
+        ):
+            self.adapter.insert_annotation_list(annotation_list)
+        e = timer()
+        d_write_annotation_list = (e-s) / self.n_iterations
 
         return d_write_manifest, d_write_annotation, d_write_annotation_list
 
