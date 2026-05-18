@@ -4,6 +4,16 @@ A benchmark of the [aiiinotate](github.com/Aikon-platform/aiiinotate/) IIIF anno
 
 ---
 
+## Requirements
+
+The benchmark requires `uv`, aiiinotate requires `node` and `mongodb`.
+
+- [installing uv](https://docs.astral.sh/uv/getting-started/installation/)
+- [installing node](https://nodejs.org/en/download) (MacOS/Linux installation script can be found [here](https://github.com/Aikon-platform/aiiinotate/blob/main/scripts/setup_node.sh))
+- [installing mongodb](https://www.mongodb.com/docs/manual/installation/) (MacOS/Linux installation script can be found [here](https://github.com/Aikon-platform/aiiinotate/blob/main/scripts/setup_mongodb.sh))
+
+---
+
 ## Setup
 
 1. clone the repo
@@ -30,7 +40,7 @@ you're done:)
 
 benchmarks are done using a CLI. aiiinotate and SAS are benchmarked independently.
 
-Run `python main.py --help` for a full list of options.
+Run `uv run main.py --help` for a full list of options.
 
 ### Aiiinotate
 
@@ -44,10 +54,10 @@ bash run_aiiinotate.sh
 
 ```bash
 # assuming aiiinotate runs on http:/localhost:4000
-source venv/bin/activate
-python main.py \
+uv run main.py \
     aiiinotate \
     -e http://localhost:4000 \
+    -s 1 \
     -n 3 \
     -r 0.01
 ```
@@ -64,8 +74,7 @@ bash run_sas.sh
 
 ```bash
 # assuming sas runs on http://localhost:8888
-source venv/bin/activate
-python main.py \
+un run main.py \
     sas \
     -e http://localhost:8888 \
     -n 3
