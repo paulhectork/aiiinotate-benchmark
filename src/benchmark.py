@@ -278,6 +278,22 @@ class Benchmark:
 
         return d_update_annotation
 
+    def delete(self, list_id_canvas: List[str]):
+        list_id_canvas = self.sample_for_iteration(list_id_canvas)
+        list_annotation = self.get_annotations_for_canvases(list_id_canvas, False)
+        list_annotation = self.sample_for_iteration(list_annotation)
+
+        s = timer()
+        for annotation in tqdm(
+            list_annotation,
+            total=len(list_annotation),
+            desc=f"benchmark: delete, {len(list_annotation)} annotations"
+        ):
+            id_annotation = annotation["@id"]
+            self.adapter.delete_annotation(id_annotation)
+        e = timer()
+
+        return (e-s) / self.n_iterations
 
     def purge(self):
         """
@@ -325,6 +341,9 @@ class Benchmark:
 
             d_update_annotation = self.update(list_id_canvas_annotations)
             log["duration_update_annotation"] = d_update_annotation
+
+            d_delete_annotation = self.delete(list_id_canvas_annotations)
+            log["duration_delete_annotation"] = d_delete_annotation
 
         finally:
             self.purge()
