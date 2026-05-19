@@ -190,6 +190,7 @@ class Benchmark:
         :param list_id_canvas: canvases containing annotations
         """
         list_id_canvas = self.sample_for_iteration(list_id_canvas)
+        print(">>>>>>>>>>>>>>>>>", list_id_canvas)
 
         s = timer()
         list_annotations = self.get_annotations_for_canvases(list_id_canvas, True)
