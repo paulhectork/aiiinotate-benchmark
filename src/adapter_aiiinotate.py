@@ -111,7 +111,6 @@ class AdapterAiiinotate(AdapterCore):
     def purge(self):
         """
         delete all contents from database
-
         # NOTE: this works with a local mongosh database on linux, without users or passwords.
         # NOTE: this is totally not safe and should only be used in trusted environments and not in prod.
         """
@@ -121,18 +120,11 @@ class AdapterAiiinotate(AdapterCore):
 
         load_dotenv(dotenv_path=PATH_ROOT / ".env.aiiinotate")
         db_name = os.getenv("MONGODB_DB")
-        db_host = os.getenv("MONGODB_HOST")
-        db_port = os.getenv("MONGODB_PORT")
-        db_connstring = f"mongodb://{db_host}:{db_port}/{db_name}"
 
-        script_bash = (
-            f"mongosh \"{db_connstring}\" <<EOF\n"
-            f"use {db_name};\n"  # just in case
-            "db.getCollection(\"annotations2\").deleteMany({});\n"
-            "db.getCollection(\"manifests2\").deleteMany({});\n"
-            "EOF"
-        )
-        subprocess.run(script_bash, shell=True)
-
+        all_filter = "{}"
+        make_command = lambda collname: f"mongosh {db_name} --eval 'db.getCollection(\"{collname}\").deleteMany({all_filter});'"
+        commands = [ make_command("annotations2"), make_command("manifests2") ]
+        for c in commands:
+            subprocess.run(c, shell=True)
         return
 

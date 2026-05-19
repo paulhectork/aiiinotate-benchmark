@@ -8,5 +8,11 @@ if [ ! -f $ENV_PATH ];
 then echo ".env file not found (at '$ENV_PATH'). exiting." && exit 1;
 fi;
 
+sudo systemctl start mongod;
+
+set -a
+source $ENV_PATH;
+set +a
+
 cd "$AIIINOTATE_DIR";
-npm run start -- serve prod;
+npm run start_prof -- serve prod;
