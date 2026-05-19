@@ -75,7 +75,7 @@ class AdapterAiiinotate(AdapterCore):
 
     def get_annotation_list(self, id_canvas:str):
         """read annotations into an annotationList ('search' route ?)"""
-        r = requests.get(f"{self.endpoint}/annotations/2/search?uri={quote_plus(id_canvas)}&asAnnotationList=true")
+        r = requests.get(f"{self.endpoint}/annotations/2/search?canvasUri={quote_plus(id_canvas)}")
         assert r.status_code == 200
         return r.json()
 

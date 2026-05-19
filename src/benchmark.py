@@ -190,7 +190,6 @@ class Benchmark:
         :param list_id_canvas: canvases containing annotations
         """
         list_id_canvas = self.sample_for_iteration(list_id_canvas)
-        print(">>>>>>>>>>>>>>>>>", list_id_canvas)
 
         s = timer()
         list_annotations = self.get_annotations_for_canvases(list_id_canvas, True)
@@ -272,7 +271,7 @@ class Benchmark:
             desc=f"benchmark: updates, {len(list_annotation)} annotations"
         ):
             r = sorted(random.sample(range(0,1000), 4))  # 4 random numbers in range 0..1000
-            annotation["on"]["selector"]["value"] = f"xywh={r[0]},{r[1]},{r[2]},{r[3]}"
+            annotation["on"][0]["selector"]["value"] = f"xywh={r[0]},{r[1]},{r[2]},{r[3]}"
             self.adapter.update_annotation(annotation)
         e = timer()
         d_update_annotation = (e-s) / self.n_iterations
@@ -368,6 +367,7 @@ class Benchmark:
         pprint(self.log)
         try:
             for i, step in enumerate(self.steps):
+                i += 1
                 self.step(i, step)  # pyright: ignore
                 write()
         finally:
