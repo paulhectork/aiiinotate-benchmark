@@ -58,7 +58,7 @@ To make the annotation server **sweat**, we don't insert 1 annotation par canvas
 N_ANNOTATIONS_PER_CANVAS = 100
 ```
 
-In a step, if we need to insert $$1000$$ annotations on $$10000$$, they will be inserted on $$\frac{1000}{10000}=10$$ canvases.
+In a step, if we need to insert $$1000$$ annotations, they will be inserted on $$\frac{1000}{100}=10$$ canvases.
 
 If the total number of annotations to insert during a step is lower than `N_ANNOTATIONS_PER_CANVAS`, then `N_ANNOTATIONS_PER_CANVAS` is overwritten all annotations to insert will be inserted in a single canvas (i.e., 10 annotations are inserted on a single canvas at the 1st step).
 
@@ -79,7 +79,7 @@ number_of_canvases_with_annotations = total_annotations / N_ANNOTATIONS_PER_CANV
 This is not part of the benchmark itself. Starting from an empty database, using the step definition defined above, we insert:
 
 - `n_manifest` manifests, with `n_annotation` canvases each (i.e., $$1000$$ manifests, each with $$1000$$ canvases)
-- from all inserted manifests, we select `number_of_canvases_with_annotations` canvases. On each, we insert `N_ANNOTATIONS_PER_CANVAS` canvases (i.e., at step 4, we insert $$100$$ annotations on $$\frac{10000}{100}=10$$ canvases).
+- from all inserted manifests, we select `number_of_canvases_with_annotations` canvases. On each, we insert `N_ANNOTATIONS_PER_CANVAS` canvases (i.e., at step 4, we insert $$100$$ annotations on $$\frac{10000}{100}=100$$ canvases).
 
 To save time, the populate step is multithreaded (see [`multithread.py`](https://github.com/paulhectork/aiiinotate-benchmark/blob/main/src/multithread.py)): inserts are split over $$20$$ threads and done in a `ThreadPool`. This also has the advantage to test how well an annotation server handles concurrent clients. Number of threads can be changed in the CLI with the `-t --threads` argument.
 
