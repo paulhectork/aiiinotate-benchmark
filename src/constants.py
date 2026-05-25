@@ -10,13 +10,19 @@ PATH_ANNOTATION_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_annotation.jsonld"
 PATH_CANVAS_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_canvas.jsonld"
 PATH_OUT = PATH_ROOT / "out"
 
-#NOTE: on the cli-side, seps are organised in grops: STEPS_GROUPS (1 group / number of manifests).
-# in the code-side, steps are not grouped: see STEPS_FLAT.
-# list of [n_manifest, n_canvas, n_annotations]
-# max #ann = 10K (to be realistic)
+# number of annotations per canvas, if a canvas has annotations. the point
+# is to insert and read "large" annotation lists.
+N_ANNOTATIONS_PER_CANVAS = 100
 
-# canvas-ot-annotation ratio (in 0..1 rangw): insert annotations on 10% of canvases
-# on one production instance of aiiinotate, RATIO is closer to 0.4. see notes below.
+# annotation-to-canvas ratio (in 0..1 range): there are 10 times (1/RATIO)
+# more canvases than there are annotations. on one production instance of
+# aiiinotate, RATIO is closer to 0.4. see notes below.
+# this doesn't mean that 10% of canvases have annotations. in practice,
+# if a canvas has an annotation, it will have N_ANNOTATIONS_PER_CANVAS annos
+# on it, and the actal number  of canvases with annotations is:
+# ```
+# (N_MANIFESTS * N_CANVAS_PER_MANIFEST * RATIO) / N_ANNOTATIONS_PER_CANVAS
+# ```
 RATIO = 0.1
 
 # steps of the benchmark, defined as a list of
@@ -33,14 +39,14 @@ RATIO = 0.1
 #
 #    manifests   canvases/manifest   total canvases    annotations
 # ----------------------------------------------------------------
-#            1             100                  100             10
-#            1           1,000                1,000            100
-#           10           1,000               10,000          1,000
-#          100           1,000              100,000         10,000
-#        1,000           1,000            1,000,000        100,000
-#       10,000           1,000           10,000,000      1,000,000
-#      100,000           1,000          100,000,000     10,000,000
-#    1,000,000           1,000        1,000,000,000    100,000,000
+#            1                 100              100             10
+#            1               1,000            1,000            100
+#           10               1,000           10,000          1,000
+#          100               1,000          100,000         10,000
+#        1,000               1,000        1,000,000        100,000
+#       10,000               1,000       10,000,000      1,000,000
+#      100,000               1,000      100,000,000     10,000,000
+#    1,000,000               1,000    1,000,000,000    100,000,000
 #
 # we have MUCH more canvases than annotations in the DB: annotations and
 # images are on a small subset of all the pages of a document. depending on RATIO,

@@ -17,6 +17,20 @@ def validate_n(n:int, threads:int) -> None:
     if n < threads:
         raise ValueError(f"'n' must be larger than 'threads' to be properly divided among threads. got n={n}, threads={threads}")
 
+def validate_n_or_update_threads(n:int, threads:int) -> int:
+    """
+    if `n` < `threads`, the function can't be multiprocessed: `n` can't be split in
+    as many threads as requested => update threads to `1` to effectively disable multiprocessing.
+    this probably has a performance cost, but if `n<threads`, `n` is very low, so
+    we're doing just a few operations and multithreading is probs useless.
+    """
+    try:
+        validate_n(n, threads)
+        return threads
+    except ValueError:
+        threads = 1
+        return threads
+
 def multithread_wrapper(f, kwargs):
     """unpack kwargs and call the function."""
     return f(**kwargs)
@@ -51,7 +65,7 @@ def multithread(func) -> Callable:
                 raise TypeError(f"kwargs['data'] must be a list ! got '{type(kwargs['data'])}'")
             data = kwargs["data"]
             n = len(data)
-            validate_n(n, threads)
+            threads = validate_n_or_update_threads(n, threads)
             n_per_thread = n // threads  # number of items to process in each thread
 
             # make a nested list of length `threads`, each sub-list with the same number of items
@@ -77,13 +91,15 @@ def multithread(func) -> Callable:
         # get the number of entries to process per thread
         else:
             n = kwargs["n"]
-            validate_n(n, threads)
+            threads = validate_n_or_update_threads(n, threads)
             n_per_thread = n // threads
             kwargs["n"] = n_per_thread
 
-        # create a tqdm progress bar. `lock` tracks the shared memory in all worker processses
+        # create a tqdm progress bar.
         pbar_desc = kwargs["pbar_desc"]
         pbar = tqdm(total=n, desc=pbar_desc)
+
+        # `lock` tracks the shared memory in all worker processses
         lock = Lock()
 
         # build pool_kwargs, the arguments that will be passed to each worker process.

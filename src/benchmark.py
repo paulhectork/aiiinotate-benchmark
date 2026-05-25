@@ -12,7 +12,7 @@ from .adapter_sas import AdapterSas
 from .adapter_aiiinotate import AdapterAiiinotate
 from .adapter_core import AdapterCore, validate_endpoint
 from .multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
-from .constants import STEPS, N_STEPS_DEFAULT, THREADS_DEFAULT, RATIO
+from .constants import STEPS, N_STEPS_DEFAULT, N_ANNOTATIONS_PER_CANVAS, THREADS_DEFAULT, RATIO
 from .generate import generate_annotations, generate_annotation_lists, generate_manifests, mkstr
 
 
@@ -21,12 +21,14 @@ def validate_threads(threads: int|None):
         raise ValueError(f"validate_threads: 'threads' but be an integer >= 1, got {threads} (type {type(threads)})")
 
 def validate_n_steps(n_steps: int):
+    min_ = 1
+    max_ = len(STEPS)
     if (
         (not isinstance(n_steps, int))
-        or n_steps < 1
-        or n_steps > len(STEPS) + 1
+        or n_steps < min_
+        or n_steps > max_
     ):
-        raise ValueError(f"validate_n_steps: 'steps' must be an integer, with steps in (0, {len(STEPS) + 1}, got '{n_steps}'" )
+        raise ValueError(f"validate_n_steps: 'steps' must be an integer, with steps in ({min_}, {max_}), got '{n_steps}'")
 
 def validate_server(server:str) -> None:
     if server not in ["aiiinotate", "sas"]:
@@ -67,39 +69,50 @@ class Benchmark:
         else:
             adapter = AdapterSas(endpoint)
 
-        steps: list = STEPS[:n_steps-1]
+        steps = STEPS[:n_steps]
 
         self.adapter = adapter
+        self.server_name = self.adapter.server_name
+        self.server_is_aiiinotate = self.server_name == "aiiinotate"
         self.steps = steps
         self.threads = threads
         self.nowrite = nowrite
-        self.ratio = RATIO
 
-        # self.n_annotation = 1000  # number of annotations per canvas.
-        self.n_iterations = 50  # number of iterations for read benchmarking: we will run read queries `n` times and then get the average time for a single query.
+        self.ratio = RATIO  # annotation-to-canvas ratio
+        self.n_annotation_per_canvas = N_ANNOTATIONS_PER_CANVAS  # number of annotations per canvas, if a canvas has annotations
+        self.n_iterations = 50  # number of iterations for read benchmarking: we will run read queries n times and then get the average time for a single query.
 
         self.step_current = {}
         self.report = {
-            "server_name": self.adapter.server_name,
-            "n_steps": 3 * n_steps,
-            "threads": self.threads,
+            "server_name": self.server_name,
+            "n_steps": n_steps,
+            "n_threads": self.threads,
             "n_iterations": self.n_iterations,
-            "ratio_canvas_with_annotations": self.ratio,
+            "n_annotation_per_canvas": self.n_annotation_per_canvas,
+            "ratio_annotation_to_canvas": self.ratio,
             "time_unit": "seconds",
             "results": []
         }
 
-    @property
-    def adapter_is_aiiinotate(self):
-        return self.adapter.server_name == "aiiinotate"
-
     def step_to_dict(self, idx_step: int, step: Tuple[int,int]) -> Dict:
+        n_manifest = step[0]
+        n_canvas_per_manifest = step[1]
+        n_annotations = int(n_manifest * n_canvas_per_manifest * self.ratio)
+        n_canvas_total = n_manifest * n_canvas_per_manifest
+        # if there are less annotations to insert than self.n_annotation_per_canvas,
+        # just insert all annotations on a single canvas.
+        n_canvas_with_annotations_per_manifest = (
+            round(n_annotations / self.n_annotation_per_canvas)
+            if n_annotations > self.n_annotation_per_canvas
+            else 1
+        )
         return {
             "index": idx_step,
-            "n_manifest": step[0],
-            "n_canvas_per_manifest": step[1],
-            "n_canvas_total": step[0] * step[1],
-            "n_annotations": step[0] * step[1] * RATIO
+            "n_manifest": n_manifest,  # number of inserted manifests
+            "n_annotations": n_annotations,  # number of annotation in total
+            "n_canvas_total": n_canvas_total,  # number of canvases in total
+            "n_canvas_per_manifest": n_canvas_per_manifest,  # number of canvases in each manifest
+            "n_canvas_with_annotations_per_manifest": n_canvas_with_annotations_per_manifest,  # number of canvases that actually have annotations on them
         }
 
     def sample_for_iteration(self, list_:List) -> List:
@@ -118,8 +131,9 @@ class Benchmark:
         populate time is indicative.
         """
         n_manifest = self.step_current["n_manifest"]
-        n_canvas = self.step_current["n_canvas"]
+        n_canvas_per_manifest = self.step_current["n_canvas_per_manifest"]
         n_annotations = self.step_current["n_annotations"]
+        n_canvas_with_annotations_per_manifest = self.step_current["n_canvas_with_annotations_per_manifest"]
 
         # insert manifests
         s = timer()
@@ -128,9 +142,9 @@ class Benchmark:
             func=self.adapter.insert_manifest,
             n=n_manifest,
             threads=self.threads,
-            pbar_desc=f"inserting {n_manifest} manifests with {n_canvas} canvases / manifest (threads={self.threads})",
+            pbar_desc=f"inserting {n_manifest} manifests with {n_canvas_per_manifest} canvases each (threads={self.threads})",
             n_manifest=n_manifest,
-            n_canvas=n_canvas,
+            n_canvas=n_canvas_per_manifest,
         )
         e = timer()
         d_populate_manifest = e-s
@@ -142,21 +156,22 @@ class Benchmark:
         list_id_canvas_full = list_id_canvas
         list_id_canvas_sample = random.sample(
             list_id_canvas,
-            round(len(list_id_canvas) * self.ratio)
+            n_canvas_with_annotations_per_manifest
         )
         s = timer()
         # `mt_insert_annotations` returns the list of canvas IDs on which annotations were inserted (should be the same as `list_id_canvas_sampled`)
         list_id_canvas_annotations = mt_insert_annotations(
             func=self.adapter.insert_annotation_list,
             data=list_id_canvas_sample,
-            # n_annotation=self.n_annotation,
+            n_annotation=self.n_annotation_per_canvas,
             threads=self.threads,
             pbar_desc=f"inserting {n_annotations} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
         )
+
         e = timer()
         d_populate_annotation = e-s
         # there's always an error in SAS insertions, so only enable this check for aiiinotate.
-        if self.adapter_is_aiiinotate:
+        if self.server_is_aiiinotate:
             assert len(list_id_canvas_sample) == len(list_id_canvas_annotations)
         return d_populate_manifest, d_populate_annotation, list_id_canvas_full, list_id_canvas_annotations
 
@@ -177,7 +192,7 @@ class Benchmark:
         ):
             # SAS returns Annotation[], while aiiinotate returns an AnnotationList.
             annotations_data = self.adapter.get_annotation_list(id_canvas)
-            if self.adapter.server_name == "Aiiinotate":
+            if self.server_is_aiiinotate:
                 list_annotations.extend(annotations_data["resources"])
             else:
                 list_annotations.extend(annotations_data)
@@ -200,7 +215,7 @@ class Benchmark:
         # 2. read a single annotation
         d_read_annotation = None
         # SAS can't fetch a single anno by its @id => only enable for aiiinotate
-        if self.adapter_is_aiiinotate:
+        if self.server_is_aiiinotate:
             # list of randomly selected annotation @ids.
             list_id_annotation = [
                 random.choice(list_annotations)["@id"]
@@ -227,7 +242,7 @@ class Benchmark:
         """
         # 1. insert manifests
         list_id_canvas = []
-        generator_manifest = generate_manifests(self.n_iterations, self.step_current["n_canvas"])
+        generator_manifest = generate_manifests(self.n_iterations, self.step_current["n_canvas_per_manifest"])
         s = timer()
         for manifest in generator_manifest:
             canvases = self.adapter.insert_manifest(manifest)
@@ -251,7 +266,7 @@ class Benchmark:
         d_write_annotation_list = None
         generator_annotation_list = generate_annotation_lists(
             self.sample_for_iteration(list_id_canvas),
-            self.n_annotation
+            self.n_annotation_per_canvas
         )
         s = timer()
         for annotation_list in tqdm(
@@ -309,7 +324,7 @@ class Benchmark:
         """
         at the end of a step, delete all contents from a db.
         """
-        if self.adapter_is_aiiinotate:
+        if self.server_is_aiiinotate:
             self.adapter.purge()  # pyright: ignore
         else:
             self.adapter.purge(self.threads)  # pyright: ignore
@@ -320,7 +335,7 @@ class Benchmark:
         run a single step.
 
         :param idx_step: position of steps within `self.steps`
-        :param step: [n_manifest, n_canvas]
+        :param step: [n_manifest, n_canvas_per_manifest]
         """
         list_id_canvas_annotations = []
         step_dict = self.step_to_dict(idx_step, step)
@@ -369,7 +384,7 @@ class Benchmark:
     def run(self):
         def write():
             if not self.nowrite:
-                write_report(self.adapter.server_name, len(self.steps), timestamp, self.report)
+                write_report(self.server_name, len(self.steps), timestamp, self.report)
             return
 
         timestamp = datetime.now().strftime(r'%Y-%m-%d-%H:%M:%S')

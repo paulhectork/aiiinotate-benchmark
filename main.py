@@ -45,7 +45,6 @@ if __name__ == "__main__":
         server=args.server,
         endpoint=args.endpoint,
         n_steps=args.steps,
-        ratio=args.ratio,
         threads=args.threads,
         nowrite=args.nowrite
     )
