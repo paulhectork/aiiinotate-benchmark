@@ -7,8 +7,8 @@ import string
 
 from tqdm import tqdm
 
-from .utils import read_json, pprint, get_manifest_short_id
-from .constants import  PATH_CANVAS_2_TEMPLATE, PATH_MANIFEST_2_TEMPLATE, PATH_ANNOTATION_2_TEMPLATE
+from src.utils import read_json, pprint, get_manifest_short_id
+from src.constants import  PATH_CANVAS_2_TEMPLATE, PATH_MANIFEST_2_TEMPLATE, PATH_ANNOTATION_2_TEMPLATE
 
 
 # NOTE: since we generate fake "@id"s the benchmark for aiiinotate won't be truthful

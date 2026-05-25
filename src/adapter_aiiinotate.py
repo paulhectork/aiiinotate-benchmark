@@ -6,9 +6,9 @@ import os
 import requests
 from dotenv import load_dotenv
 
-from .constants import PATH_ROOT
-from .adapter_core import AdapterCore
-from .utils import pprint, get_manifest_short_id, get_canvas_ids
+from src.constants import PATH_ROOT
+from src.adapter_core import AdapterCore
+from src.utils import pprint, get_manifest_short_id, get_canvas_ids
 
 class AdapterAiiinotate(AdapterCore):
     def __init__(self, endpoint):

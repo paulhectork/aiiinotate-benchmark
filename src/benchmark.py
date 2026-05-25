@@ -7,14 +7,14 @@ from timeit import default_timer as timer
 
 from tqdm import tqdm
 
-from .utils import pprint, write_report, get_manifest_short_id
-from .adapter_sas import AdapterSas
-from .adapter_aiiinotate import AdapterAiiinotate
-from .adapter_core import AdapterCore, validate_endpoint
-from .multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
-from .constants import STEPS, N_ITERATIONS, N_STEPS_DEFAULT, N_ANNOTATIONS_PER_CANVAS, THREADS_DEFAULT, RATIO
-from .generate import generate_annotations, generate_annotation_lists, generate_manifests, mkstr
-
+from src.utils import pprint, write_report, get_manifest_short_id
+from src.adapter_sas import AdapterSas
+from src.adapter_aiiinotate import AdapterAiiinotate
+from src.adapter_core import AdapterCore, validate_endpoint
+from src.multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
+from src.constants import STEPS, N_ITERATIONS, N_STEPS_DEFAULT, N_ANNOTATIONS_PER_CANVAS, THREADS_DEFAULT, RATIO
+from src.generate import generate_annotations, generate_annotation_lists, generate_manifests, mkstr
+from src.visualize import visualize
 
 def validate_threads(threads: int|None):
     if not isinstance(threads, int) or threads < 1:
@@ -97,19 +97,19 @@ class Benchmark:
     def step_to_dict(self, idx_step: int, step: Tuple[int,int]) -> Dict:
         n_manifest = step[0]
         n_canvas_per_manifest = step[1]
-        n_annotations = int(n_manifest * n_canvas_per_manifest * self.ratio)
+        n_annotation = int(n_manifest * n_canvas_per_manifest * self.ratio)
         n_canvas_total = n_manifest * n_canvas_per_manifest
         # if there are less annotations to insert than self.n_annotation_per_canvas,
         # just insert all annotations on a single canvas.
         n_canvas_with_annotations_per_manifest = (
-            round(n_annotations / self.n_annotation_per_canvas)
-            if n_annotations >= self.n_annotation_per_canvas
+            round(n_annotation / self.n_annotation_per_canvas)
+            if n_annotation >= self.n_annotation_per_canvas
             else 1
         )
         return {
             "index": idx_step,
             "n_manifest": n_manifest,  # number of inserted manifests
-            "n_annotations": n_annotations,  # number of annotation in total
+            "n_annotation": n_annotation,  # number of annotation in total
             "n_canvas_total": n_canvas_total,  # number of canvases in total
             "n_canvas_per_manifest": n_canvas_per_manifest,  # number of canvases in each manifest
             "n_canvas_with_annotations_per_manifest": n_canvas_with_annotations_per_manifest,  # number of canvases that actually have annotations on them
@@ -122,6 +122,38 @@ class Benchmark:
         #NOTE: THIS WILL BREAK THE BENCHMARKS if using it in benchmarks that are running several iterations, if `self.n_iterations > len(list_)`: average calculation will be broken !
         return random.sample(list_, min(self.n_iterations, len(list_)))
 
+    def warmup(self):
+        """
+        before running the benchmark, insert a bunch of annotations to the
+        AS to warm it up, then delete them.
+        """
+        n_manifest = 10_000
+        n_canvas_per_manifest = 1000
+        n_annotation = 100_000
+        n_canvas_with_annotations_per_manifest = int(100_000 / self.n_annotation_per_canvas)
+
+        list_id_canvas = mt_insert_manifests(
+            func=self.adapter.insert_manifest,
+            n=n_manifest,
+            threads=self.threads,
+            pbar_desc=f"warmup: inserting {n_manifest} manifests (threads={self.threads})",
+            n_manifest=n_manifest,
+            n_canvas=n_canvas_per_manifest,
+        )
+        list_id_canvas_sample = random.sample(
+            list_id_canvas,
+            n_canvas_with_annotations_per_manifest
+        )
+        mt_insert_annotations(
+            func=self.adapter.insert_annotation_list,
+            data=list_id_canvas_sample,
+            n_annotation=self.n_annotation_per_canvas,
+            threads=self.threads,
+            pbar_desc=f"inserting {n_annotation} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
+        )
+        self.purge()
+        return self
+
     def populate(self):
         """
         before starting the benchmark, bulk insert annotations and annotation lists to the server.
@@ -132,7 +164,7 @@ class Benchmark:
         """
         n_manifest = self.step_current["n_manifest"]
         n_canvas_per_manifest = self.step_current["n_canvas_per_manifest"]
-        n_annotations = self.step_current["n_annotations"]
+        n_annotation = self.step_current["n_annotation"]
         n_canvas_with_annotations_per_manifest = self.step_current["n_canvas_with_annotations_per_manifest"]
 
         # if the total number of annotations to be inserted at this step is lower than
@@ -142,8 +174,8 @@ class Benchmark:
         # - n_annotation_per_canvas = n_anotation (total number of annotations)
         step_n_annotation_per_canvas = (
             self.n_annotation_per_canvas
-            if n_annotations >= self.n_annotation_per_canvas
-            else n_annotations
+            if n_annotation >= self.n_annotation_per_canvas
+            else n_annotation
         )
 
         # insert manifests
@@ -176,7 +208,7 @@ class Benchmark:
             data=list_id_canvas_sample,
             n_annotation=step_n_annotation_per_canvas,
             threads=self.threads,
-            pbar_desc=f"inserting {n_annotations} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
+            pbar_desc=f"inserting {n_annotation} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
         )
 
         e = timer()
@@ -361,25 +393,25 @@ class Benchmark:
 
         try:
             d_populate_manifest, d_populate_annotation, list_id_canvas_full, list_id_canvas_annotations = self.populate()
-            report["duration_populate_manifest"] = d_populate_manifest
-            report["duration_populate_annotation"] = d_populate_annotation
+            report["timing_populate_manifest"] = d_populate_manifest
+            report["timing_populate_annotation"] = d_populate_annotation
 
             d_read_annotation_list, d_read_annotation = self.read(list_id_canvas_annotations)
-            report["duration_read_annotation_list"] = d_read_annotation_list
+            report["timing_read_annotation_list"] = d_read_annotation_list
             if d_read_annotation is not None:
-                report["duration_read_annotation"] = d_read_annotation
+                report["timing_read_annotation"] = d_read_annotation
 
             d_write_manifest, d_write_annotation, d_write_annotation_list = self.write()
-            report["duration_write_manifest"] = d_write_manifest
-            report["duration_write_annotation"] = d_write_annotation
+            report["timing_write_manifest"] = d_write_manifest
+            report["timing_write_annotation"] = d_write_annotation
             if d_write_annotation_list is not None:
-                report["duration_write_annotation_list"] = d_write_annotation_list
+                report["timing_write_annotation_list"] = d_write_annotation_list
 
             d_update_annotation = self.update(list_id_canvas_annotations)
-            report["duration_update_annotation"] = d_update_annotation
+            report["timing_update_annotation"] = d_update_annotation
 
             d_delete_annotation = self.delete(list_id_canvas_annotations)
-            report["duration_delete_annotation"] = d_delete_annotation
+            report["timing_delete_annotation"] = d_delete_annotation
 
         finally:
             self.purge()
@@ -401,6 +433,8 @@ class Benchmark:
         timestamp = datetime.now().strftime(r'%Y-%m-%d-%H:%M:%S')
         print("Global benchmark parameters:")
         pprint(self.report)
+
+        self.warmup()
         try:
             for i, step in enumerate(self.steps):
                 i += 1
@@ -408,5 +442,6 @@ class Benchmark:
                 write()
         finally:
                 write()
+                visualize(self.report)
         return
 

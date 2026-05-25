@@ -5,10 +5,10 @@ import subprocess
 
 import requests
 
-from .constants import PATH_ROOT
-from .adapter_core import AdapterCore
-from .utils import get_canvas_ids, get_manifest_short_id, pprint
-from .multithread import mt_delete
+from src.constants import PATH_ROOT
+from src.adapter_core import AdapterCore
+from src.utils import get_canvas_ids, get_manifest_short_id, pprint
+from src.multithread import mt_delete
 
 
 class AdapterSas(AdapterCore):

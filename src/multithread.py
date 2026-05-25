@@ -10,7 +10,7 @@ from typing import Dict, List, Tuple, Callable, Optional
 
 from tqdm import tqdm
 
-from .generate import generate_annotation_list, generate_manifest
+from src.generate import generate_annotation_list, generate_manifest
 
 
 def validate_n(n:int, threads:int) -> None:

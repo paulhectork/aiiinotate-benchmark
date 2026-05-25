@@ -1,5 +1,5 @@
-from .benchmark import Benchmark
-from .constants import N_STEPS_DEFAULT, THREADS_DEFAULT
+from src.benchmark import Benchmark
+from src.constants import N_STEPS_DEFAULT, THREADS_DEFAULT
 
 
 def runner(
