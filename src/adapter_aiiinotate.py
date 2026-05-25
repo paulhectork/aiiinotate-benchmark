@@ -17,7 +17,7 @@ class AdapterAiiinotate(AdapterCore):
 
     @property
     def server_name(self):
-        return "Aiiinotate"
+        return "aiiinotate"
 
     def insert_manifest(self, manifest: Dict) -> List[Optional[str]]:
         """insert a single manifest"""

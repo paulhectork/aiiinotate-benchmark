@@ -1,7 +1,7 @@
 import argparse
 
 from src.runner import runner
-from src.constants import STEPS_GROUP_RANGE, N_STEPS_DEFAULT, RATIO_DEFAULT, THREADS_DEFAULT
+from src.constants import STEPS, N_STEPS_DEFAULT, THREADS_DEFAULT
 
 parser = argparse.ArgumentParser(
     prog="AiiinotateBenchmark",
@@ -23,14 +23,7 @@ parser.add_argument(
     "-s", "--steps",
     type=int,
     required=False,
-    help=f"number of step groups to run (in range {STEPS_GROUP_RANGE}, 0=1st step)"
-)
-parser.add_argument(
-    "-r", "--ratio",
-    type=float,
-    required=False,
-    default=RATIO_DEFAULT,
-    help="ratio of canvases with annotations to canvases without annotations (in range 0..1)"
+    help=f"number of step groups to run (in range (1..{len(STEPS)+1}))"
 )
 parser.add_argument(
     "-t", "--threads",
@@ -43,7 +36,7 @@ parser.add_argument(
     "-n", "--nowrite",
     action="store_true",
     default=False,
-    help="do not write the log to file"
+    help="do not write the benchmark report to file"
 )
 
 if __name__ == "__main__":

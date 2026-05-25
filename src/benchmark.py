@@ -7,12 +7,12 @@ from timeit import default_timer as timer
 
 from tqdm import tqdm
 
-from .utils import pprint, write_log, get_manifest_short_id
+from .utils import pprint, write_report, get_manifest_short_id
 from .adapter_sas import AdapterSas
 from .adapter_aiiinotate import AdapterAiiinotate
 from .adapter_core import AdapterCore, validate_endpoint
 from .multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
-from .constants import STEPS_GROUP, STEPS_FLAT, STEPS_GROUP_RANGE, RATIO_DEFAULT, N_STEPS_DEFAULT, THREADS_DEFAULT
+from .constants import STEPS, N_STEPS_DEFAULT, THREADS_DEFAULT, RATIO
 from .generate import generate_annotations, generate_annotation_lists, generate_manifests, mkstr
 
 
@@ -23,10 +23,10 @@ def validate_threads(threads: int|None):
 def validate_n_steps(n_steps: int):
     if (
         (not isinstance(n_steps, int))
-        or n_steps < STEPS_GROUP_RANGE[0]
-        or n_steps > STEPS_GROUP_RANGE[1]
+        or n_steps < 1
+        or n_steps > len(STEPS) + 1
     ):
-        raise ValueError(f"validate_n_steps: 'steps' must be an integer, with steps in {STEPS_GROUP_RANGE}, got '{n_steps}'" )
+        raise ValueError(f"validate_n_steps: 'steps' must be an integer, with steps in (0, {len(STEPS) + 1}, got '{n_steps}'" )
 
 def validate_server(server:str) -> None:
     if server not in ["aiiinotate", "sas"]:
@@ -49,16 +49,12 @@ class Benchmark:
         endpoint: str,
         server: str,
         n_steps: int = N_STEPS_DEFAULT,
-        ratio: float|None = RATIO_DEFAULT,
         threads: int|None = THREADS_DEFAULT,
         nowrite: bool = False,
     ):
         """
-        :param steps: steps of the benchmark, i.e [ (<step 1: number of manifests>, <step 1  number of canvases / manifest>), (<step 2: # manifests>, <step 2 # canvases / manifest>), ... ]
-        :param adapter: an adapter inheriting from 'AdapterCore'
-        :param ratio: ratio of canvases with annotations / canvases without annotations
+        view CLI help for info on the arguments.
         """
-        validate_ratio(ratio)
         validate_n_steps(n_steps)
         validate_server(server)
         validate_endpoint(endpoint)
@@ -71,22 +67,19 @@ class Benchmark:
         else:
             adapter = AdapterSas(endpoint)
 
-        # STEPS_GROUP is used to count steps in the CLI, STEPS_FLAT is actually used for the benchmark
-        # => select the values in STEPS_FLAT based on `n_steps`
-        #n_steps += 1
-        steps: list = STEPS_FLAT[:3*n_steps]
+        steps: list = STEPS[:n_steps-1]
 
         self.adapter = adapter
         self.steps = steps
-        self.ratio = ratio if ratio is not None else RATIO_DEFAULT  # ratio of canvases that will have annotations. 0.01 = 1 in 100 canvases in a manifest will have annotations.
         self.threads = threads
         self.nowrite = nowrite
+        self.ratio = RATIO
 
-        self.n_annotation = 1000  # number of annotations per canvas.
+        # self.n_annotation = 1000  # number of annotations per canvas.
         self.n_iterations = 50  # number of iterations for read benchmarking: we will run read queries `n` times and then get the average time for a single query.
 
         self.step_current = {}
-        self.log = {
+        self.report = {
             "server_name": self.adapter.server_name,
             "n_steps": 3 * n_steps,
             "threads": self.threads,
@@ -96,14 +89,17 @@ class Benchmark:
             "results": []
         }
 
+    @property
+    def adapter_is_aiiinotate(self):
+        return self.adapter.server_name == "aiiinotate"
+
     def step_to_dict(self, idx_step: int, step: Tuple[int,int]) -> Dict:
-        n_canvas, n_manifest = step
         return {
             "index": idx_step,
             "n_manifest": step[0],
-            "n_canvas": step[1],
-            "n_annotations": self.n_annotation * round(n_canvas * self.ratio) * n_manifest,
-            "n_annotation_per_canvas": self.n_annotation,
+            "n_canvas_per_manifest": step[1],
+            "n_canvas_total": step[0] * step[1],
+            "n_annotations": step[0] * step[1] * RATIO
         }
 
     def sample_for_iteration(self, list_:List) -> List:
@@ -116,11 +112,14 @@ class Benchmark:
     def populate(self):
         """
         before starting the benchmark, bulk insert annotations and annotation lists to the server.
-        NOTE: this isn't really a step of the benchmark as much as it is a preparatory step, but we log times just in case.
-        in more detail: in Aiiinotate, a big insert bottleneck is to fetch the manifest for each annotation's target, index the manifest and get annotation's canvas index, which we can't replicate.
+        this isn't really a step of the benchmark, it is a preparatory step, but we report times just in case.
+        in more detail: in Aiiinotate, a big insert bottleneck is to fetch the manifest for each annotation's
+        target, index the manifest and get annotation's canvas index. we can't replicate this here, so the
+        populate time is indicative.
         """
-        n_manifest = self.step_current["n_manifest"]  # pyright:ignore
-        n_canvas = self.step_current["n_canvas"]  # pyright:ignore
+        n_manifest = self.step_current["n_manifest"]
+        n_canvas = self.step_current["n_canvas"]
+        n_annotations = self.step_current["n_annotations"]
 
         # insert manifests
         s = timer()
@@ -129,7 +128,7 @@ class Benchmark:
             func=self.adapter.insert_manifest,
             n=n_manifest,
             threads=self.threads,
-            pbar_desc=f"inserting {n_manifest} manifests with {n_canvas} canvases (threads={self.threads})",
+            pbar_desc=f"inserting {n_manifest} manifests with {n_canvas} canvases / manifest (threads={self.threads})",
             n_manifest=n_manifest,
             n_canvas=n_canvas,
         )
@@ -150,14 +149,15 @@ class Benchmark:
         list_id_canvas_annotations = mt_insert_annotations(
             func=self.adapter.insert_annotation_list,
             data=list_id_canvas_sample,
-            n_annotation=self.n_annotation,
+            # n_annotation=self.n_annotation,
             threads=self.threads,
-            pbar_desc=f"inserting {self.n_annotation * len(list_id_canvas_sample)} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
+            pbar_desc=f"inserting {n_annotations} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
         )
         e = timer()
         d_populate_annotation = e-s
-        # NOTE: there's always an error in SAS insertions, so the check below fails.
-        # assert len(list_id_canvas_sample) == len(list_id_canvas_annotations)
+        # there's always an error in SAS insertions, so only enable this check for aiiinotate.
+        if self.adapter_is_aiiinotate:
+            assert len(list_id_canvas_sample) == len(list_id_canvas_annotations)
         return d_populate_manifest, d_populate_annotation, list_id_canvas_full, list_id_canvas_annotations
 
     def get_annotations_for_canvases(self, list_id_canvas: List[str], is_benchmark: bool = False):
@@ -191,13 +191,16 @@ class Benchmark:
         """
         list_id_canvas = self.sample_for_iteration(list_id_canvas)
 
+        # 1. read annotations on a canvas
         s = timer()
         list_annotations = self.get_annotations_for_canvases(list_id_canvas, True)
         e = timer()
         d_read_annotation_list = (e-s) / self.n_iterations
 
+        # 2. read a single annotation
         d_read_annotation = None
-        if self.adapter.server_name == "Aiiinotate":
+        # SAS can't fetch a single anno by its @id => only enable for aiiinotate
+        if self.adapter_is_aiiinotate:
             # list of randomly selected annotation @ids.
             list_id_annotation = [
                 random.choice(list_annotations)["@id"]
@@ -214,12 +217,15 @@ class Benchmark:
             e = timer()
             d_read_annotation = (e-s) / self.n_iterations
 
+        # TODO 3. IIIF SEARCH API
+
         return d_read_annotation_list, d_read_annotation
 
     def write(self) -> Tuple[float, float, float|None]:
         """
         write time benchmarks
         """
+        # 1. insert manifests
         list_id_canvas = []
         generator_manifest = generate_manifests(self.n_iterations, self.step_current["n_canvas"])
         s = timer()
@@ -229,6 +235,7 @@ class Benchmark:
         e = timer()
         d_write_manifest = (e-s) / self.n_iterations
 
+        # 2. create 1 annotation
         generator_annotation = generate_annotations(random.sample(list_id_canvas, self.n_iterations))
         s = timer()
         for annotation in tqdm(
@@ -240,6 +247,7 @@ class Benchmark:
         e = timer()
         d_write_annotation = (e-s) / self.n_iterations
 
+        # 3. create many annotations
         d_write_annotation_list = None
         generator_annotation_list = generate_annotation_lists(
             self.sample_for_iteration(list_id_canvas),
@@ -261,6 +269,7 @@ class Benchmark:
         """
         update time benchmarks
         """
+        # update 1 annotation
         list_id_canvas = self.sample_for_iteration(list_id_canvas)
         list_annotation = self.get_annotations_for_canvases(list_id_canvas, False)
         list_annotation = self.sample_for_iteration(list_annotation)
@@ -283,6 +292,7 @@ class Benchmark:
         list_annotation = self.get_annotations_for_canvases(list_id_canvas, False)
         list_annotation = self.sample_for_iteration(list_annotation)
 
+        # delete 1 annotation
         s = timer()
         for annotation in tqdm(
             list_annotation,
@@ -299,7 +309,7 @@ class Benchmark:
         """
         at the end of a step, delete all contents from a db.
         """
-        if self.adapter.server_name == "Aiiinotate":
+        if self.adapter_is_aiiinotate:
             self.adapter.purge()  # pyright: ignore
         else:
             self.adapter.purge(self.threads)  # pyright: ignore
@@ -315,42 +325,42 @@ class Benchmark:
         list_id_canvas_annotations = []
         step_dict = self.step_to_dict(idx_step, step)
         self.step_current = step_dict
-        log = {}
-        log["step"] = step_dict
+        report = {}
+        report["step"] = step_dict
 
         t_width = shutil.get_terminal_size((80,20))[0]
-        banner_start = f"\nSTART STEP #{idx_step}: {step_dict}\n{'*' * t_width}\n"
-        banner_end = f"{'*' * t_width}\n"
+        banner_start = f"\nSTART STEP #{idx_step}: {step_dict}\n{'~' * t_width}\n"
+        banner_end = f"{'~' * t_width}\n"
         print(banner_start)
 
         try:
             d_populate_manifest, d_populate_annotation, list_id_canvas_full, list_id_canvas_annotations = self.populate()
-            log["duration_populate_manifest"] = d_populate_manifest
-            log["duration_populate_annotation"] = d_populate_annotation
+            report["duration_populate_manifest"] = d_populate_manifest
+            report["duration_populate_annotation"] = d_populate_annotation
 
             d_read_annotation_list, d_read_annotation = self.read(list_id_canvas_annotations)
-            log["duration_read_annotation_list"] = d_read_annotation_list
+            report["duration_read_annotation_list"] = d_read_annotation_list
             if d_read_annotation is not None:
-                log["duration_read_annotation"] = d_read_annotation
+                report["duration_read_annotation"] = d_read_annotation
 
             d_write_manifest, d_write_annotation, d_write_annotation_list = self.write()
-            log["duration_write_manifest"] = d_write_manifest
-            log["duration_write_annotation"] = d_write_annotation
+            report["duration_write_manifest"] = d_write_manifest
+            report["duration_write_annotation"] = d_write_annotation
             if d_write_annotation_list is not None:
-                log["duration_write_annotation_list"] = d_write_annotation_list
+                report["duration_write_annotation_list"] = d_write_annotation_list
 
             d_update_annotation = self.update(list_id_canvas_annotations)
-            log["duration_update_annotation"] = d_update_annotation
+            report["duration_update_annotation"] = d_update_annotation
 
             d_delete_annotation = self.delete(list_id_canvas_annotations)
-            log["duration_delete_annotation"] = d_delete_annotation
+            report["duration_delete_annotation"] = d_delete_annotation
 
         finally:
             self.purge()
             self.step_current = {}
-            self.log["results"].append(log)
+            self.report["results"].append(report)
             print(f"\nSTEP #{idx_step} RESULTS:")
-            pprint(log)
+            pprint(report)
             print("")
 
         print(banner_end)
@@ -359,12 +369,12 @@ class Benchmark:
     def run(self):
         def write():
             if not self.nowrite:
-                write_log(self.adapter.server_name, len(self.steps), timestamp, self.log)
+                write_report(self.adapter.server_name, len(self.steps), timestamp, self.report)
             return
 
         timestamp = datetime.now().strftime(r'%Y-%m-%d-%H:%M:%S')
         print("Global benchmark parameters:")
-        pprint(self.log)
+        pprint(self.report)
         try:
             for i, step in enumerate(self.steps):
                 i += 1

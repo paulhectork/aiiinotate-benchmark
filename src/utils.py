@@ -12,12 +12,12 @@ def read_json(fp: Path) -> Dict:
     with open(fp, mode="r", encoding="utf-8") as fh:
         return json.load(fh)
 
-def write_log(server_name: str, n_steps:int, timestamp: str, log: Dict) -> None:
+def write_report(server_name: str, n_steps:int, timestamp: str, report: Dict) -> None:
     if not PATH_OUT.exists():
         PATH_OUT.mkdir()
-    out_name = f"log_benchmark_{server_name.lower()}_{n_steps}steps_{timestamp}.json"
+    out_name = f"report_benchmark_{server_name.lower()}_{n_steps}steps_{timestamp}.json"
     with open(PATH_OUT / out_name, mode="w", encoding="utf-8") as fh:
-        json.dump(log, fh, indent=2)
+        json.dump(report, fh, indent=2)
     return
 
 def pprint(jsonlike: Dict|List, maxlen=-1) -> None:
