@@ -10,6 +10,9 @@ PATH_ANNOTATION_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_annotation.jsonld"
 PATH_CANVAS_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_canvas.jsonld"
 PATH_OUT = PATH_ROOT / "out"
 
+# number of times a single benchmark operation is repeated
+N_ITERATIONS = 50
+
 # number of annotations per canvas, if a canvas has annotations. the point
 # is to insert and read "large" annotation lists.
 N_ANNOTATIONS_PER_CANVAS = 100
@@ -71,14 +74,14 @@ RATIO = 0.1
 # >>> RATIO = n_annotations / n_canvas_total
 # ```
 STEPS = [
-    (1,           100),   #       1   ×   100 × 0.1 =          10
-    (1,         1_000),   #       1   × 1_000 × 0.1 =         100
-    (10,        1_000),   #      10   × 1_000 × 0.1 =       1_000
-    (100,       1_000),   #     100   × 1_000 × 0.1 =      10_000
-    (1_000,     1_000),   #   1_000   × 1_000 × 0.1 =     100_000
-    (10_000,    1_000),   #  10_000   × 1_000 × 0.1 =   1_000_000
-    (100_000,   1_000),   # 100_000   × 1_000 × 0.1 =  10_000_000
-    (1_000_000, 1_000),   # 1_000_000 × 1_000 × 0.1 = 100_000_000
+    (1,           100),
+    (1,         1_000),
+    (10,        1_000),
+    (100,       1_000),
+    (1_000,     1_000),
+    (10_000,    1_000),
+    (100_000,   1_000),
+    (1_000_000, 1_000),
 ]
 
 # default nyumber of benchmark steps to run

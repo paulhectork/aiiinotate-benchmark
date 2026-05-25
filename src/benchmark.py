@@ -12,7 +12,7 @@ from .adapter_sas import AdapterSas
 from .adapter_aiiinotate import AdapterAiiinotate
 from .adapter_core import AdapterCore, validate_endpoint
 from .multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
-from .constants import STEPS, N_STEPS_DEFAULT, N_ANNOTATIONS_PER_CANVAS, THREADS_DEFAULT, RATIO
+from .constants import STEPS, N_ITERATIONS, N_STEPS_DEFAULT, N_ANNOTATIONS_PER_CANVAS, THREADS_DEFAULT, RATIO
 from .generate import generate_annotations, generate_annotation_lists, generate_manifests, mkstr
 
 
@@ -80,7 +80,7 @@ class Benchmark:
 
         self.ratio = RATIO  # annotation-to-canvas ratio
         self.n_annotation_per_canvas = N_ANNOTATIONS_PER_CANVAS  # number of annotations per canvas, if a canvas has annotations
-        self.n_iterations = 50  # number of iterations for read benchmarking: we will run read queries n times and then get the average time for a single query.
+        self.n_iterations = N_ITERATIONS  # number of iterations for read benchmarking: we will run read queries n times and then get the average time for a single query.
 
         self.step_current = {}
         self.report = {
@@ -103,7 +103,7 @@ class Benchmark:
         # just insert all annotations on a single canvas.
         n_canvas_with_annotations_per_manifest = (
             round(n_annotations / self.n_annotation_per_canvas)
-            if n_annotations > self.n_annotation_per_canvas
+            if n_annotations >= self.n_annotation_per_canvas
             else 1
         )
         return {
@@ -135,6 +135,17 @@ class Benchmark:
         n_annotations = self.step_current["n_annotations"]
         n_canvas_with_annotations_per_manifest = self.step_current["n_canvas_with_annotations_per_manifest"]
 
+        # if the total number of annotations to be inserted at this step is lower than
+        # self.n_annotation_per_canvas, then insert all annotations on a single canvas.
+        # in this case,
+        # - n_canvas_with_annotations_per_manifest = 1 (see `self.step_to_dict`)
+        # - n_annotation_per_canvas = n_anotation (total number of annotations)
+        step_n_annotation_per_canvas = (
+            self.n_annotation_per_canvas
+            if n_annotations >= self.n_annotation_per_canvas
+            else n_annotations
+        )
+
         # insert manifests
         s = timer()
         # `mt_insert_manifests` returns a list of all canvas IDs of all the manifests inserted.
@@ -163,7 +174,7 @@ class Benchmark:
         list_id_canvas_annotations = mt_insert_annotations(
             func=self.adapter.insert_annotation_list,
             data=list_id_canvas_sample,
-            n_annotation=self.n_annotation_per_canvas,
+            n_annotation=step_n_annotation_per_canvas,
             threads=self.threads,
             pbar_desc=f"inserting {n_annotations} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
         )
@@ -353,22 +364,22 @@ class Benchmark:
             report["duration_populate_manifest"] = d_populate_manifest
             report["duration_populate_annotation"] = d_populate_annotation
 
-            # d_read_annotation_list, d_read_annotation = self.read(list_id_canvas_annotations)
-            # report["duration_read_annotation_list"] = d_read_annotation_list
-            # if d_read_annotation is not None:
-            #     report["duration_read_annotation"] = d_read_annotation
-            #
-            # d_write_manifest, d_write_annotation, d_write_annotation_list = self.write()
-            # report["duration_write_manifest"] = d_write_manifest
-            # report["duration_write_annotation"] = d_write_annotation
-            # if d_write_annotation_list is not None:
-            #     report["duration_write_annotation_list"] = d_write_annotation_list
-            #
-            # d_update_annotation = self.update(list_id_canvas_annotations)
-            # report["duration_update_annotation"] = d_update_annotation
-            #
-            # d_delete_annotation = self.delete(list_id_canvas_annotations)
-            # report["duration_delete_annotation"] = d_delete_annotation
+            d_read_annotation_list, d_read_annotation = self.read(list_id_canvas_annotations)
+            report["duration_read_annotation_list"] = d_read_annotation_list
+            if d_read_annotation is not None:
+                report["duration_read_annotation"] = d_read_annotation
+
+            d_write_manifest, d_write_annotation, d_write_annotation_list = self.write()
+            report["duration_write_manifest"] = d_write_manifest
+            report["duration_write_annotation"] = d_write_annotation
+            if d_write_annotation_list is not None:
+                report["duration_write_annotation_list"] = d_write_annotation_list
+
+            d_update_annotation = self.update(list_id_canvas_annotations)
+            report["duration_update_annotation"] = d_update_annotation
+
+            d_delete_annotation = self.delete(list_id_canvas_annotations)
+            report["duration_delete_annotation"] = d_delete_annotation
 
         finally:
             self.purge()
