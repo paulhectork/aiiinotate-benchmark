@@ -4,6 +4,12 @@ A benchmark of the [aiiinotate](github.com/Aikon-platform/aiiinotate/) IIIF anno
 
 ---
 
+## Methodology
+
+Read [`methodology.md`](https://github.com/paulhectork/aiiinotate-benchmark/blob/main/docs/methodology.md).
+
+---
+
 ## Requirements
 
 The benchmark requires `uv`, aiiinotate requires `node` and `mongodb`.
