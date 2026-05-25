@@ -3,12 +3,13 @@
 
 ## Overview
 
-The benchmark is divided in steps, with a database that grows from a step to another. Steps are defined in [`constants.py`](https://github.com/paulhectork/aiiinotate-benchmark/blob/main/src/constants.py) and benchmark in [`benchmark.py`](https://github.com/paulhectork/aiiinotate-benchmark/blob/main/src/benchmark.py).
+The benchmark executed is the same operation across different annotation servers (currently, SAS is partially implemented, aiiinotate fully implemented). 
 
-Each step follows the same pipeline, and each step begins with a blank database:
-- **populate**: in an empty database, insert "starting" data: a certain number of manifests and annotations.
-- **run the benchmarks** (create/read/update/delete).
-- **purge**: remove all data from the database.
+A benchmark consists of multiple steps (up to 8). Each step repeats same CRUD operations on a database that grows larger at each step (up to 100M annotations, if the annotation server handles it). Each step consists of 3 phases:
+
+- **populate phase**: insert data in the database accross multiple threads (up to 100M annotations)
+- **benchmark phase**: time various CRUD operations. Each CRUD operation is repeated several times over a single thread, and the average time to execute each operation once is stored.
+- **purge phase**: delete the contents of the entire database.
 
 ---
 
