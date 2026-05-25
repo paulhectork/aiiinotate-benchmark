@@ -42,12 +42,12 @@ Benchmarks are done using a CLI. aiiinotate and SAS are benchmarked independentl
 
 Run `uv run main.py --help` for a full list of options.
 
-1. in one terminal, **start the annotation serveraiiinotate** (unecessary if benchmarking a remote instance that is aldready running)
-    - for aiiinotate:
+1. in one terminal, **start the annotation server** (unecessary if benchmarking a remote instance that is aldready running)
+    - for **aiiinotate**:
     ```bash
     bash run_aiiinotate.sh
     ```
-    - for SAS:
+    - for **SAS**:
     ```bash
     bash run_sas.sh
     ```
@@ -66,10 +66,14 @@ uv run main.py \                            # cli entrypoint
 
 ## Methodology
 
-The benchmark executed the same operation across different annotation servers (currently, SAS is partially implemented, aiiinotate fully implemented). 
+The benchmark executes **the same operations across different annotation servers** (currently, SAS is partially implemented, aiiinotate fully implemented). 
 
-A benchmark consists of multiple steps (up to 8). Each step repeats same CRUD operations on a database that grows larger at each step (up to 100M annotations, if the annotation server handles it). Each step consists of 3 phases:
+A benchmark
+- **consists of multiple steps** (up to 8). 
+- each step **repeats the same CRUD operations** on an annotation server 
+- **the database grows larger at each step** (up to 100M annotations, if the annotation server handles it). 
 
+Each step consists of 3 phases:
 - **populate phase**: insert data in the database accross multiple threads (up to 100M annotations)
 - **benchmark phase**: time various CRUD operations. Each CRUD operation is repeated several times over a single thread, and the average time to execute each operation once is stored.
 - **purge phase**: delete the contents of the entire database.
