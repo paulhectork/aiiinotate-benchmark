@@ -353,22 +353,22 @@ class Benchmark:
             report["duration_populate_manifest"] = d_populate_manifest
             report["duration_populate_annotation"] = d_populate_annotation
 
-            d_read_annotation_list, d_read_annotation = self.read(list_id_canvas_annotations)
-            report["duration_read_annotation_list"] = d_read_annotation_list
-            if d_read_annotation is not None:
-                report["duration_read_annotation"] = d_read_annotation
-
-            d_write_manifest, d_write_annotation, d_write_annotation_list = self.write()
-            report["duration_write_manifest"] = d_write_manifest
-            report["duration_write_annotation"] = d_write_annotation
-            if d_write_annotation_list is not None:
-                report["duration_write_annotation_list"] = d_write_annotation_list
-
-            d_update_annotation = self.update(list_id_canvas_annotations)
-            report["duration_update_annotation"] = d_update_annotation
-
-            d_delete_annotation = self.delete(list_id_canvas_annotations)
-            report["duration_delete_annotation"] = d_delete_annotation
+            # d_read_annotation_list, d_read_annotation = self.read(list_id_canvas_annotations)
+            # report["duration_read_annotation_list"] = d_read_annotation_list
+            # if d_read_annotation is not None:
+            #     report["duration_read_annotation"] = d_read_annotation
+            #
+            # d_write_manifest, d_write_annotation, d_write_annotation_list = self.write()
+            # report["duration_write_manifest"] = d_write_manifest
+            # report["duration_write_annotation"] = d_write_annotation
+            # if d_write_annotation_list is not None:
+            #     report["duration_write_annotation_list"] = d_write_annotation_list
+            #
+            # d_update_annotation = self.update(list_id_canvas_annotations)
+            # report["duration_update_annotation"] = d_update_annotation
+            #
+            # d_delete_annotation = self.delete(list_id_canvas_annotations)
+            # report["duration_delete_annotation"] = d_delete_annotation
 
         finally:
             self.purge()
