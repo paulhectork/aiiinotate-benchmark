@@ -1,8 +1,9 @@
 # Benchmark methodology
 
-The benchmark is divided in steps. The database grows from one step to another.
 
 ## Overview
+
+The benchmark is divided in steps, with a database that grows from a step to another. Steps are defined in [`constants.py`](https://github.com/paulhectork/aiiinotate-benchmark/blob/main/src/constants.py) and benchmark in [`benchmark.py`](https://github.com/paulhectork/aiiinotate-benchmark/blob/main/src/benchmark.py).
 
 Each step follows the same pipeline, and each step begins with a blank database:
 - **populate**: in an empty database, insert "starting" data: a certain number of manifests and annotations.
@@ -41,14 +42,14 @@ The steps can be summarized by the table:
 ```
    manifests   canvases/manifest   total canvases    annotations
 ----------------------------------------------------------------
-           1             100                  100             10
-           1           1,000                1,000            100
-          10           1,000               10,000          1,000
-         100           1,000              100,000         10,000
-       1,000           1,000            1,000,000        100,000
-      10,000           1,000           10,000,000      1,000,000
-     100,000           1,000          100,000,000     10,000,000
-   1,000,000           1,000        1,000,000,000    100,000,000
+           1                 100              100             10
+           1               1,000            1,000            100
+          10               1,000           10,000          1,000
+         100               1,000          100,000         10,000
+       1,000               1,000        1,000,000        100,000
+      10,000               1,000       10,000,000      1,000,000
+     100,000               1,000      100,000,000     10,000,000
+   1,000,000               1,000    1,000,000,000    100,000,000
 ```
 
 To make the annotation server **sweat**, we don't insert 1 annotation par canvas, but 100 annotations per canvas. This is useful when timing read and write times for annotation lists: the annotation server will have more data to process, which corresponds better to real world use cases.
@@ -114,7 +115,7 @@ average_execution_time = (e-s) / N_ITERATIONS
 Benchmarks are executed in a single thread for timings to be more accurate.
 
 The database size changes when running the benchmarks:
-- ~$$5000$$ annotations are inserted
+- ~ $$5000$$ annotations are inserted
 - $$50$$ manifests are inserted
 
 For clarity, for each step, the number of annotations/manifests/canvases that are stored correspond to **the numbers at the end of the `populate` step, not at the end of running the benchmark**: this is the actual database size that we start with.
