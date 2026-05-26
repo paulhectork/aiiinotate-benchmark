@@ -14,7 +14,7 @@ from src.adapter_core import AdapterCore, validate_endpoint
 from src.multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
 from src.constants import STEPS, N_ITERATIONS, N_STEPS_DEFAULT, N_ANNOTATIONS_PER_CANVAS, THREADS_DEFAULT, RATIO
 from src.generate import generate_annotations, generate_annotation_lists, generate_manifests, mkstr
-from src.visualize import visualize
+
 
 def validate_threads(threads: int|None):
     if not isinstance(threads, int) or threads < 1:
@@ -444,7 +444,6 @@ class Benchmark:
                 write(report_basename)
         finally:
                 write(report_basename)
-                visualize(self.report, report_basename, to_file=not self.nowrite)
         return
 
 

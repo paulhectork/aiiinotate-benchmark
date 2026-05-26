@@ -4,6 +4,7 @@ from typing import Callable
 import click
 
 from src.benchmark import benchmark_runner
+from src.visualize import make_visualization
 from src.constants import STEPS, N_STEPS_DEFAULT, THREADS_DEFAULT
 
 def common_options(func: Callable) -> Callable:
@@ -33,7 +34,6 @@ def cli():
     "server",
     type=click.STRING,
     required=True,
-    help="the annotation server to test"
 )
 @click.option(
     "-e", "--endpoint",
@@ -54,13 +54,7 @@ def cli():
     default=THREADS_DEFAULT,
     help=f"number of threads to use when populating database (default={THREADS_DEFAULT})"
 )
-@click.option(
-    "-n", "--nowrite",
-    type=click.BOOL,
-    is_flag=True,
-    default=False,
-    help="do not write the benchmark report to file"
-)
+@common_options
 def benchmark(
     server: str,
     endpoint: str,
@@ -79,3 +73,22 @@ def benchmark(
         nowrite=nowrite
     )
 
+@cli.command()
+@click.argument(
+    "report_file",
+    type=click.STRING,
+    required=True
+)
+@common_options
+def visualize(report_file: str, nowrite: bool):
+    """
+    make a visualization of the results of a previously executed benchmark.
+    argument report_file can be either:
+    - "latest": visualize the latest report generated
+    - the path to a report file
+    """
+    make_visualization(report_file, nowrite)
+
+
+if __name__ == "__main__":
+    cli()
