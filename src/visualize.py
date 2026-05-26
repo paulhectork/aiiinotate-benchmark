@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from src.utils import PATH_OUT, read_json
+from src.utils import PATH_OUT
 
 def get_x(report: dict) -> list:
     to_string = lambda t: f"n_man: {t[0]}, n_ann: {t[1]}"
@@ -19,7 +19,7 @@ def get_y(report: dict, key: str) -> list[float]:
         step[key] for step in report["results"]
     ]
 
-def visualize(report: dict) -> None:
+def visualize(report: dict, basename: str, to_file: bool = True) -> None:
     x = get_x(report)
     y_data = [
         (
@@ -71,3 +71,5 @@ def visualize(report: dict) -> None:
     ax.legend()
 
     plt.show()
+    if to_file:
+        plt.savefig(PATH_OUT / f"{basename}.png", transparent=False)

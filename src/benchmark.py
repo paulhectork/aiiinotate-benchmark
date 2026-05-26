@@ -127,10 +127,10 @@ class Benchmark:
         before running the benchmark, insert a bunch of annotations to the
         AS to warm it up, then delete them.
         """
-        n_manifest = 10_000
+        n_manifest = 1_000
         n_canvas_per_manifest = 1000
-        n_annotation = 100_000
-        n_canvas_with_annotations_per_manifest = int(100_000 / self.n_annotation_per_canvas)
+        n_annotation = 10_000
+        n_canvas_with_annotations_per_manifest = int(n_annotation / self.n_annotation_per_canvas)
 
         list_id_canvas = mt_insert_manifests(
             func=self.adapter.insert_manifest,
@@ -425,12 +425,14 @@ class Benchmark:
         return
 
     def run(self):
-        def write():
+        def write(basename: str):
             if not self.nowrite:
-                write_report(self.server_name, len(self.steps), timestamp, self.report)
+                write_report(basename, self.report)
             return
 
         timestamp = datetime.now().strftime(r'%Y-%m-%d-%H:%M:%S')
+        report_basename = f"report_benchmark_{self.server_name.lower()}_{timestamp}_{len(self.steps)}steps"
+
         print("Global benchmark parameters:")
         pprint(self.report)
 
@@ -439,9 +441,27 @@ class Benchmark:
             for i, step in enumerate(self.steps):
                 i += 1
                 self.step(i, step)  # pyright: ignore
-                write()
+                write(report_basename)
         finally:
-                write()
-                visualize(self.report)
+                write(report_basename)
+                visualize(self.report, report_basename, to_file=not self.nowrite)
         return
+
+
+def benchmark_runner(
+    server: str,
+    endpoint: str,
+    n_steps: int = N_STEPS_DEFAULT,
+    threads: int|None = THREADS_DEFAULT,
+    nowrite: bool = False,
+) -> None:
+    """define a benchmark and run it"""
+    Benchmark(
+        server=server,
+        endpoint=endpoint,
+        n_steps=n_steps,
+        threads=threads,
+        nowrite=nowrite
+    ).run()
+
 

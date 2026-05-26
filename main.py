@@ -1,50 +1,81 @@
-import argparse
+import functools
+from typing import Callable
 
-from src.runner import runner
+import click
+
+from src.benchmark import benchmark_runner
 from src.constants import STEPS, N_STEPS_DEFAULT, THREADS_DEFAULT
 
-parser = argparse.ArgumentParser(
-    prog="AiiinotateBenchmark",
-    description="benchmark for the aiiinotate IIIF annotation server"
-)
-parser.add_argument(
+def common_options(func: Callable) -> Callable:
+    """
+    add options shared by different CLI commands
+    """
+    @click.option(
+        "-n", "--nowrite",
+        type=click.BOOL,
+        is_flag=True,
+        default=False,
+        help="do not write the benchmark report or visualization to file"
+    )
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+    return wrapper
+
+@click.group()
+def cli():
+    """
+    a benchmark and scalability test of IIIF Annotation servers, and especially aiiinotate
+    """
+
+@cli.command
+@click.argument(
     "server",
-    choices=["aiiinotate", "sas"],
-    help="which annotation server to test"
-)
-parser.add_argument(
-    "-e", "--endpoint",
-    type=str,
+    type=click.STRING,
     required=True,
-    default=N_STEPS_DEFAULT,
-    help="the endpoint on which the annotation server is listening (including http(s) scheme and port, if on localhost)"
+    help="the annotation server to test"
 )
-parser.add_argument(
+@click.option(
+    "-e", "--endpoint",
+    type=click.STRING,
+    help="the endpoint on which the annotation server is listening (including http(s) scheme and port, if needed)"
+)
+@click.option(
     "-s", "--steps",
     type=int,
     required=False,
+    default=N_STEPS_DEFAULT,
     help=f"number of step groups to run (in range (1..{len(STEPS)+1}))"
 )
-parser.add_argument(
+@click.option(
     "-t", "--threads",
     type=int,
     required=False,
     default=THREADS_DEFAULT,
     help=f"number of threads to use when populating database (default={THREADS_DEFAULT})"
 )
-parser.add_argument(
+@click.option(
     "-n", "--nowrite",
-    action="store_true",
+    type=click.BOOL,
+    is_flag=True,
     default=False,
     help="do not write the benchmark report to file"
 )
-
-if __name__ == "__main__":
-    args = parser.parse_args()
-    runner(
-        server=args.server,
-        endpoint=args.endpoint,
-        n_steps=args.steps,
-        threads=args.threads,
-        nowrite=args.nowrite
+def benchmark(
+    server: str,
+    endpoint: str,
+    steps: int,
+    threads: int,
+    nowrite: bool,
+):
+    """
+    run a benchmark
+    """
+    benchmark_runner(
+        server=server,
+        endpoint=endpoint,
+        n_steps=steps,
+        threads=threads,
+        nowrite=nowrite
     )
+
