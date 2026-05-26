@@ -28,7 +28,7 @@ def get_latest_report_file() -> Path:
 
 
 def get_x(report: dict) -> list:
-    to_string = lambda t: f"#man.={t[0]:,}; #anno.={t[1]:,}"
+    to_string = lambda t: f"#man.={t[0]:,}\n#anno.={t[1]:,}"
     return [
         to_string((
             step["step"]["n_manifest"],
@@ -92,8 +92,8 @@ def make_plot(report: dict, basename: str, to_file: bool = True) -> None:
     plt.style.use("_mpl-gallery")
     plt.ioff()
 
-    plt.xlabel("database contents")
-    plt.ylabel(f"average execution time in {report['time_unit']}")
+    plt.xlabel("Database contents")
+    plt.ylabel(f"Average execution time per operation (in {report['time_unit']})")
 
     for el in y_data:
         ax.plot(x, el[0], label=el[1])
