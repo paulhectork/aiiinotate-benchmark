@@ -1,23 +1,25 @@
 from typing import List, Dict, Tuple, Generator
-from copy import deepcopy
 from uuid import uuid4
 
 import random
 import string
 
-from tqdm import tqdm
-
-from src.utils import read_json, pprint, get_manifest_short_id
+from src.utils import json_read, pprint, get_manifest_short_id, orjson_deepcopy
 from src.constants import  PATH_CANVAS_2_TEMPLATE, PATH_MANIFEST_2_TEMPLATE, PATH_ANNOTATION_2_TEMPLATE
 
 
-# NOTE: since we generate fake "@id"s the benchmark for aiiinotate won't be truthful
-# a big insert bottleneck is having to fetch manifest @ids for each inserted annotation.
+# NOTE: a big insert bottleneck when inserting annotations is having to fetch the manifest in order to extract the canVasIdx
+# fetching a manifest through HTTP is both
+# - non-determistic: execution time is entierly out of our control
+# - not dependent on the database size (fetching a manifest when your db has 100M manifests will take the same time as when it's empty)
+# in turn, we put manifest @ids on a closed localhost port. this means:
+# - that HTTP fetches fail almost instantly => more deterministic
+# - that benchmarked insert times are much faster than actual insert times.
+URI_ROOT = "https://localhost"
 
-annotation_2_template = read_json(PATH_ANNOTATION_2_TEMPLATE)
-manifest_2_template = read_json(PATH_MANIFEST_2_TEMPLATE)
-canvas_2_template = read_json(PATH_CANVAS_2_TEMPLATE)
-
+annotation_2_template = json_read(PATH_ANNOTATION_2_TEMPLATE)
+manifest_2_template = json_read(PATH_MANIFEST_2_TEMPLATE)
+canvas_2_template = json_read(PATH_CANVAS_2_TEMPLATE)
 
 def generate_random_string(length):
     ## Generate random string with ASCII letters and digits
@@ -31,8 +33,8 @@ def mkstr():
 
 
 def generate_annotation(id_manifest_short: str, id_canvas:str) -> Dict:
-    annotation = deepcopy(annotation_2_template)
-    annotation["@id"] = f"http://aikon.enpc.fr/sas/{id_manifest_short}/annotation/id_{mkstr()}"
+    annotation = orjson_deepcopy(annotation_2_template)
+    annotation["@id"] = f"{URI_ROOT}/{id_manifest_short}/annotation/id_{mkstr()}"
     annotation["on"] = f"{id_canvas}#xywh=5,0,1824,2161"
     return annotation
 
@@ -43,7 +45,7 @@ def generate_annotation_list(id_canvas, n_annotations:int) -> Dict:
     return {
         "@context": "http://iiif.io/api/presentation/2/context.json",
         "@type": "sc:AnnotationList",
-        "@id": f"http://aikon.enpc.fr/sas/{id_manifest_short}/list/l_{uuid4()}",
+        "@id": f"{URI_ROOT}/{id_manifest_short}/list/l_{uuid4()}",
         "resources": [
             generate_annotation(id_manifest_short, id_canvas)
             for _ in range(n_annotations)
@@ -51,7 +53,7 @@ def generate_annotation_list(id_canvas, n_annotations:int) -> Dict:
     }
 
 def generate_canvas(id_manifest:str) -> Dict:
-    canvas = deepcopy(canvas_2_template)
+    canvas = orjson_deepcopy(canvas_2_template)
     folio = f"f_{mkstr()}"
     id_canvas = id_manifest.replace("/manifest.json", "") + f"/canvas/{folio}"
     id_img = f"{id_canvas}/full/full/0/native.jpg"
@@ -66,8 +68,8 @@ def generate_canvases(id_manifest:str, n_canvas=1000) -> List[Dict]:
     ]
 
 def generate_manifest(n_canvas:int=1000) -> Dict:
-    manifest = deepcopy(manifest_2_template)
-    id_manifest = f"https://gallica.bnf.fr/iiif/ark:/12148/{mkstr()}/manifest.json"
+    manifest = orjson_deepcopy(manifest_2_template)
+    id_manifest = f"{URI_ROOT}/{mkstr()}/manifest.json"
     manifest["@id"] = id_manifest
     manifest["sequences"][0]["canvases"] = generate_canvases(id_manifest, n_canvas)
     return manifest

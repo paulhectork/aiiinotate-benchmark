@@ -4,7 +4,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-from src.utils import PATH_OUT, read_json
+from src.utils import PATH_OUT, json_read
 
 
 report_file_regex = re.compile(r"report_benchmark_[A-Za-z]+_([\d\-\:]+)_\d+steps(\.json)?")
@@ -112,7 +112,7 @@ def make_visualization(report_file: str|Path, nowrite: bool):
             report_file = get_latest_report_file()
         else:
             report_file = Path(report_file)
-        report = read_json(Path(report_file))
+        report = json_read(Path(report_file))
     except FileNotFoundError:
         print("report file not found and could not be visualized. if you used `latest`, make sure you have ran a benchmark before. otherwise, make sure you specified the correct path to the benchmark report file.")
         exit(1)
