@@ -38,6 +38,8 @@ You're done:)
 
 ## Usage
 
+### Benchmarks
+
 Benchmarks are done using a CLI. aiiinotate and SAS are benchmarked independently.
 
 Run `uv run main.py --help` for a full list of options.
@@ -56,10 +58,22 @@ Run `uv run main.py --help` for a full list of options.
 
 ```bash
 # assuming aiiinotate runs on http:/localhost:4000
-uv run main.py \                            # cli entrypoint
+uv run main.py benchmark \                  # cli entrypoint
     aiiinotate \                            # which annotation server to benchmark
     --endpoint http://localhost:4000 \      # its endpoint
     --steps 4                               # how many steps to run
+    --nowrite?                              # optional: don't write the database results to file 
+```
+
+### Visualization
+
+Visualization is used to plot a benchmark report. To visualize, you must have saved a benchmark report to a file.
+
+```bash
+# if `latest`, the most recent saved benchmark is visualized
+# otherwise, provide the path to the benchmark to visualize
+# if `--nowrite`, show the visualization without saving it
+uv run main.py visualize latest|path/to/report --nowrite?
 ```
 
 ---
