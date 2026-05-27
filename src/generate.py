@@ -29,25 +29,27 @@ def generate_random_string(length):
 def mkstr():
     """generate a random, (pseudo-) unique value."""
     # return generate_random_string(15)  # NOTE: ~12 it/s
-    return uuid4()  # NOTE: ~25 it/s
+    return str(uuid4())  # NOTE: ~25 it/s
 
+def make_manifest_uri(short_id: str) -> str:
+    return f"{URI_ROOT}/{short_id}/manifest.json"
 
-def generate_annotation(id_manifest_short: str, id_canvas:str) -> Dict:
+def generate_annotation(short_id: str, id_canvas:str) -> Dict:
     annotation = orjson_deepcopy(annotation_2_template)
-    annotation["@id"] = f"{URI_ROOT}/{id_manifest_short}/annotation/id_{mkstr()}"
+    annotation["@id"] = f"{URI_ROOT}/{short_id}/annotation/id_{mkstr()}"
     annotation["on"] = f"{id_canvas}#xywh=5,0,1824,2161"
     return annotation
 
 def generate_annotation_list(id_canvas, n_annotations:int) -> Dict:
     """generate an annotationlist on canvas `id_canvas` with `n` annotations"""
     # AnnotationList URI: {scheme}://{host}/{prefix}/{identifier}/list/{name}
-    id_manifest_short = get_manifest_short_id(id_canvas)
+    short_id = get_manifest_short_id(id_canvas)
     return {
         "@context": "http://iiif.io/api/presentation/2/context.json",
         "@type": "sc:AnnotationList",
-        "@id": f"{URI_ROOT}/{id_manifest_short}/list/l_{uuid4()}",
+        "@id": f"{URI_ROOT}/{short_id}/list/l_{uuid4()}",
         "resources": [
-            generate_annotation(id_manifest_short, id_canvas)
+            generate_annotation(short_id, id_canvas)
             for _ in range(n_annotations)
         ]
     }
@@ -69,18 +71,29 @@ def generate_canvases(id_manifest:str, n_canvas=1000) -> List[Dict]:
 
 def generate_manifest(n_canvas:int=1000) -> Dict:
     manifest = orjson_deepcopy(manifest_2_template)
-    id_manifest = f"{URI_ROOT}/{mkstr()}/manifest.json"
+    id_manifest = make_manifest_uri(mkstr())
     manifest["@id"] = id_manifest
     manifest["sequences"][0]["canvases"] = generate_canvases(id_manifest, n_canvas)
     return manifest
+
+def generate_manifest_index(n_canvas:int=1000) -> Dict:
+    """generate a manifest index as it is stored in aiiinotate"""
+    short_id = mkstr()
+    id_manifest = make_manifest_uri(short_id)
+    return {
+        "@id": id_manifest,
+        "manifestShortId": short_id,
+        "@type": "sc:Manifest",
+        "canvasIds": generate_canvases(id_manifest)
+    }
 
 def generate_annotations(list_id_canvas:List[str]) -> Generator[Dict, List[int], None]:
     """
     generator creating 1 annotation per id_canvas in `list_id_canvas`
     """
     for id_canvas in list_id_canvas:
-        id_manifest_short = get_manifest_short_id(id_canvas)
-        yield generate_annotation(id_manifest_short, id_canvas)
+        short_id = get_manifest_short_id(id_canvas)
+        yield generate_annotation(short_id, id_canvas)
     return
 
 def generate_manifests(n_manifest:int=1000, n_canvas:int=1000) -> Generator[Dict, Tuple[int,int], None]:
@@ -89,6 +102,11 @@ def generate_manifests(n_manifest:int=1000, n_canvas:int=1000) -> Generator[Dict
     """
     for _ in range(n_manifest):
         yield generate_manifest(n_canvas)
+    return
+
+def generate_manifest_indexes(n_manifest: int=1000, n_canvas:int=1000) -> Generator[Dict, Tuple[int,int], None]:
+    for _ in range(n_manifest):
+        yield generate_manifest_index(n_canvas)
     return
 
 def generate_annotation_lists(list_id_canvas: List[str], n_annotation:int=100) -> Generator[Dict, Tuple[List[str], int], None]:

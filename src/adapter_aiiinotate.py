@@ -8,7 +8,33 @@ from dotenv import load_dotenv
 
 from src.constants import PATH_ROOT
 from src.adapter_core import AdapterCore
-from src.utils import pprint, get_manifest_short_id, get_canvas_ids
+from src.utils import pprint, get_manifest_short_id, get_canvas_ids, json_dumps, bytes_to_str
+
+path_dotenv = PATH_ROOT / ".env.aiiinotate"
+if not path_dotenv.exists():
+    raise FileNotFoundError(f".env.aiiinotate file not found at: '{path_dotenv}'")
+
+load_dotenv(dotenv_path=PATH_ROOT / ".env.aiiinotate")
+DB_NAME = os.getenv("MONGODB_DB")
+
+
+def run_bash(bash_command: str) -> None:
+    subprocess.run(bash_command, shell=True, check=True)
+
+
+def run_mongosh_command(command: str):
+    bash_command = f"mongosh {DB_NAME} --eval '{command}'"
+    run_bash(bash_command)
+    return
+
+
+def mongoshimport(collection: str, data: List[Dict]):
+    # 1. write data to tmpfile
+    # 2. use mongoimport
+    # 3. delete import file.
+    # TODO output (list canvasIds)
+    ...
+
 
 class AdapterAiiinotate(AdapterCore):
     def __init__(self, endpoint):
@@ -114,17 +140,9 @@ class AdapterAiiinotate(AdapterCore):
         # NOTE: this works with a local mongosh database on linux, without users or passwords.
         # NOTE: this is totally not safe and should only be used in trusted environments and not in prod.
         """
-        path_dotenv = PATH_ROOT / ".env.aiiinotate"
-        if not path_dotenv.exists():
-            raise FileNotFoundError(f".env.aiiinotate file not found at: '{path_dotenv}'")
-
-        load_dotenv(dotenv_path=PATH_ROOT / ".env.aiiinotate")
-        db_name = os.getenv("MONGODB_DB")
-
         all_filter = "{}"
-        make_command = lambda collname: f"mongosh {db_name} --eval 'db.getCollection(\"{collname}\").deleteMany({all_filter});'"
-        commands = [ make_command("annotations2"), make_command("manifests2") ]
-        for c in commands:
-            subprocess.run(c, shell=True)
+        collections = ["annotations2", "manifests2"]
+        for collection in collections:
+            run_mongosh_command(f"db.getCollection(\"{collection}\").deleteMany({all_filter});")
         return
 

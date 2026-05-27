@@ -179,6 +179,7 @@ def mt_insert_manifests(
             list_id_canvas += _list_id_canvas
     return success, error, list_id_canvas
 
+
 @multithread
 def mt_insert_annotations(
     func: Callable,

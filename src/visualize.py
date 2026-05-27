@@ -88,7 +88,7 @@ def make_plot(report: dict, basename: str, to_file: bool = True) -> None:
     plt.style.use("_mpl-gallery")
     plt.ioff()
 
-    plt.xlabel("Database contents")
+    plt.xlabel("Number of annotations in database")
     plt.ylabel(f"Average execution time per operation (in {report['time_unit']})")
 
     for el in y_data:
