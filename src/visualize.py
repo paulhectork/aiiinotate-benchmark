@@ -28,13 +28,9 @@ def get_latest_report_file() -> Path:
 
 
 def get_x(report: dict) -> list:
-    to_string = lambda t: f"#man.={t[0]:,}\n#anno.={t[1]:,}"
+    to_string = lambda n: f"{n:,}"
     return [
-        to_string((
-            step["step"]["n_manifest"],
-            step["step"]["n_annotation"]
-        ))
-        # step["step"]["n_annotation"]
+        to_string(step["step"]["n_annotation"])
         for step in report["results"]
     ]
 
