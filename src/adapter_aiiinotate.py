@@ -1,39 +1,18 @@
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Callable, Optional, BinaryIO
 from urllib.parse import quote_plus
+from uuid import uuid4
+from pathlib import Path
 import subprocess
 import os
 
 import requests
 from dotenv import load_dotenv
 
-from src.constants import PATH_ROOT
 from src.adapter_core import AdapterCore
-from src.utils import pprint, get_manifest_short_id, get_canvas_ids, json_dumps, bytes_to_str
-
-path_dotenv = PATH_ROOT / ".env.aiiinotate"
-if not path_dotenv.exists():
-    raise FileNotFoundError(f".env.aiiinotate file not found at: '{path_dotenv}'")
-
-load_dotenv(dotenv_path=PATH_ROOT / ".env.aiiinotate")
-DB_NAME = os.getenv("MONGODB_DB")
+from src.utils import pprint, get_manifest_short_id, get_canvas_ids, json_dumps, run_bash
+from src.mongosh import run_mongosh_command
 
 
-def run_bash(bash_command: str) -> None:
-    subprocess.run(bash_command, shell=True, check=True)
-
-
-def run_mongosh_command(command: str):
-    bash_command = f"mongosh {DB_NAME} --eval '{command}'"
-    run_bash(bash_command)
-    return
-
-
-def mongoshimport(collection: str, data: List[Dict]):
-    # 1. write data to tmpfile
-    # 2. use mongoimport
-    # 3. delete import file.
-    # TODO output (list canvasIds)
-    ...
 
 
 class AdapterAiiinotate(AdapterCore):

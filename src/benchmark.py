@@ -14,7 +14,7 @@ from src.adapter_core import AdapterCore, validate_endpoint
 from src.multithread import mt_insert_manifests, mt_insert_annotations, mt_delete
 from src.constants import STEPS, N_ITERATIONS, N_STEPS_DEFAULT, N_ANNOTATIONS_PER_CANVAS, THREADS_DEFAULT, RATIO
 from src.generate import generate_annotations, generate_annotation_lists, generate_manifests, mkstr
-
+from src.mongosh import mongoshimport_annotations, mongoshimport_manifests
 
 def validate_threads(threads: int|None):
     if not isinstance(threads, int) or threads < 1:
@@ -128,8 +128,8 @@ class Benchmark:
         AS to warm it up, then delete them.
         """
         n_manifest = 1_000
-        n_canvas_per_manifest = 1000
-        n_annotation = 10_000
+        n_canvas_per_manifest = 1_000
+        n_annotation = 1_000
         n_canvas_with_annotations_per_manifest = int(n_annotation / self.n_annotation_per_canvas)
 
         list_id_canvas = mt_insert_manifests(
@@ -140,6 +140,7 @@ class Benchmark:
             n_manifest=n_manifest,
             n_canvas=n_canvas_per_manifest,
         )
+
         list_id_canvas_sample = random.sample(
             list_id_canvas,
             n_canvas_with_annotations_per_manifest
@@ -151,8 +152,53 @@ class Benchmark:
             threads=self.threads,
             pbar_desc=f"inserting {n_annotation} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
         )
+
         self.purge()
         return self
+
+    def populate_manifests(self, n_manifest: int, n_canvas_per_manifest: int):
+        # insert manifests
+        # both functions return a list of all canvas IDs of all the manifests inserted.
+        if self.server_is_aiiinotate and n_manifest >= 1000:
+            list_id_canvas = mongoshimport_manifests(
+                n_manifest=n_manifest,
+                n_canvas=n_canvas_per_manifest
+            )
+
+        else:
+            list_id_canvas = mt_insert_manifests(
+                func=self.adapter.insert_manifest,
+                n=n_manifest,
+                threads=self.threads,
+                pbar_desc=f"inserting {n_manifest} manifests with {n_canvas_per_manifest} canvases each (threads={self.threads})",
+                n_manifest=n_manifest,
+                n_canvas=n_canvas_per_manifest,
+            )
+        assert len(list_id_canvas) != 0
+        return list_id_canvas
+
+    def populate_annotations(self, n_annotation: int, list_id_canvas: list[str], step_n_annotation_per_canvas: int):
+        # `mt_insert_annotations` returns the list of canvas IDs on which annotations were inserted (should be the same as `list_id_canvas_sampled`)
+        if self.server_is_aiiinotate and len(list_id_canvas) >= 1000:
+            assert n_annotation == len(list_id_canvas) * self.n_annotation_per_canvas
+            mongoshimport_annotations(
+                list_id_canvas=list_id_canvas,
+                n_annotation=self.n_annotation_per_canvas
+            )
+            list_id_canvas_annotations  = list_id_canvas
+        else:
+            list_id_canvas_annotations = mt_insert_annotations(
+                func=self.adapter.insert_annotation_list,
+                data=list_id_canvas,
+                n_annotation=step_n_annotation_per_canvas,
+                threads=self.threads,
+                pbar_desc=f"inserting {n_annotation} annotations on {len(list_id_canvas)} canvases (threads={self.threads})"
+            )
+
+        # there's always an error in SAS insertions, so only enable this check for aiiinotate.
+        if self.server_is_aiiinotate:
+            assert len(list_id_canvas) == len(list_id_canvas_annotations)
+        return list_id_canvas_annotations
 
     def populate(self):
         """
@@ -181,14 +227,15 @@ class Benchmark:
         # insert manifests
         s = timer()
         # `mt_insert_manifests` returns a list of all canvas IDs of all the manifests inserted.
-        list_id_canvas = mt_insert_manifests(
-            func=self.adapter.insert_manifest,
-            n=n_manifest,
-            threads=self.threads,
-            pbar_desc=f"inserting {n_manifest} manifests with {n_canvas_per_manifest} canvases each (threads={self.threads})",
-            n_manifest=n_manifest,
-            n_canvas=n_canvas_per_manifest,
-        )
+        list_id_canvas = self.populate_manifests(n_manifest, n_canvas_per_manifest)
+        # list_id_canvas = mt_insert_manifests(
+        #     func=self.adapter.insert_manifest,
+        #     n=n_manifest,
+        #     threads=self.threads,
+        #     pbar_desc=f"inserting {n_manifest} manifests with {n_canvas_per_manifest} canvases each (threads={self.threads})",
+        #     n_manifest=n_manifest,
+        #     n_canvas=n_canvas_per_manifest,
+        # )
         e = timer()
         d_populate_manifest = e-s
         assert len(list_id_canvas) != 0
@@ -203,14 +250,18 @@ class Benchmark:
         )
         s = timer()
         # `mt_insert_annotations` returns the list of canvas IDs on which annotations were inserted (should be the same as `list_id_canvas_sampled`)
-        list_id_canvas_annotations = mt_insert_annotations(
-            func=self.adapter.insert_annotation_list,
-            data=list_id_canvas_sample,
-            n_annotation=step_n_annotation_per_canvas,
-            threads=self.threads,
-            pbar_desc=f"inserting {n_annotation} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
+        # list_id_canvas_annotations = mt_insert_annotations(
+        #     func=self.adapter.insert_annotation_list,
+        #     data=list_id_canvas_sample,
+        #     n_annotation=step_n_annotation_per_canvas,
+        #     threads=self.threads,
+        #     pbar_desc=f"inserting {n_annotation} annotations on {len(list_id_canvas_sample)} canvases (threads={self.threads})"
+        # )
+        list_id_canvas_annotations = self.populate_annotations(
+            n_annotation,
+            list_id_canvas_sample,
+            step_n_annotation_per_canvas
         )
-
         e = timer()
         d_populate_annotation = e-s
         # there's always an error in SAS insertions, so only enable this check for aiiinotate.
@@ -436,7 +487,7 @@ class Benchmark:
         print("Global benchmark parameters:")
         pprint(self.report)
 
-        self.warmup()
+        # self.warmup()
         try:
             for i, step in enumerate(self.steps):
                 i += 1

@@ -5,7 +5,7 @@ import random
 import string
 
 from src.utils import json_read, pprint, get_manifest_short_id, orjson_deepcopy
-from src.constants import  PATH_CANVAS_2_TEMPLATE, PATH_MANIFEST_2_TEMPLATE, PATH_ANNOTATION_2_TEMPLATE
+from src.constants import  PATH_CANVAS_2_TEMPLATE, PATH_MANIFEST_2_TEMPLATE, PATH_ANNOTATION_2_TEMPLATE, AIIINOTATE_HOST, AIIINOTATE_PORT, AIIINOTATE_SCHEME
 
 
 # NOTE: a big insert bottleneck when inserting annotations is having to fetch the manifest in order to extract the canVasIdx
@@ -34,10 +34,23 @@ def mkstr():
 def make_manifest_uri(short_id: str) -> str:
     return f"{URI_ROOT}/{short_id}/manifest.json"
 
+def make_canvas_uri(manifest_uri: str, folio: str) -> str:
+    return manifest_uri.replace("/manifest.json", "") + f"/canvas/{folio}"
+
 def generate_annotation(short_id: str, id_canvas:str) -> Dict:
     annotation = orjson_deepcopy(annotation_2_template)
-    annotation["@id"] = f"{URI_ROOT}/{short_id}/annotation/id_{mkstr()}"
-    annotation["on"] = f"{id_canvas}#xywh=5,0,1824,2161"
+    # NOTE: for mongoimport to not break the benchmark, the @id of an annotation MUST be queryable.
+    # GET /data/{iiif_version}/{manifest_short_id}/annotation/{annotation_short_id}
+    annotation["@id"] = f"{AIIINOTATE_SCHEME}://{AIIINOTATE_HOST}:{AIIINOTATE_PORT}/data/2/{short_id}/annotation/id_{mkstr()}"
+    # annotation["on"] = f"{id_canvas}#xywh=5,0,1824,2161"
+    annotation["on"] = [{
+        "@type": "oa:SpecificResource",
+        "full": id_canvas,
+        "selector": {
+            "@type": "oa:FragmentSelector",
+            "value": f"{id_canvas}#xywh=5,0,1824,2161",
+        },
+    }]
     return annotation
 
 def generate_annotation_list(id_canvas, n_annotations:int) -> Dict:
@@ -57,7 +70,7 @@ def generate_annotation_list(id_canvas, n_annotations:int) -> Dict:
 def generate_canvas(id_manifest:str) -> Dict:
     canvas = orjson_deepcopy(canvas_2_template)
     folio = f"f_{mkstr()}"
-    id_canvas = id_manifest.replace("/manifest.json", "") + f"/canvas/{folio}"
+    id_canvas = make_canvas_uri(id_manifest, folio)
     id_img = f"{id_canvas}/full/full/0/native.jpg"
     canvas["@id"] = id_canvas
     canvas["images"][0]["@id"] = id_img
@@ -84,7 +97,10 @@ def generate_manifest_index(n_canvas:int=1000) -> Dict:
         "@id": id_manifest,
         "manifestShortId": short_id,
         "@type": "sc:Manifest",
-        "canvasIds": generate_canvases(id_manifest)
+        "canvasIds": [
+            make_canvas_uri(id_manifest, mkstr())
+            for _ in range(n_canvas)
+        ]
     }
 
 def generate_annotations(list_id_canvas:List[str]) -> Generator[Dict, List[int], None]:
@@ -104,15 +120,20 @@ def generate_manifests(n_manifest:int=1000, n_canvas:int=1000) -> Generator[Dict
         yield generate_manifest(n_canvas)
     return
 
-def generate_manifest_indexes(n_manifest: int=1000, n_canvas:int=1000) -> Generator[Dict, Tuple[int,int], None]:
+def generate_manifest_indexes(n_manifest: int=1000, n_canvas:int=1000, **kwargs) -> Generator[Dict, Tuple[int,int], None]:
+    # arguments may be passed as kwargs as well
+    n_manifest = kwargs.get("n_manifest", None) or n_manifest
+    n_canvas = kwargs.get("n_canvas", None) or n_canvas
     for _ in range(n_manifest):
         yield generate_manifest_index(n_canvas)
     return
 
-def generate_annotation_lists(list_id_canvas: List[str], n_annotation:int=100) -> Generator[Dict, Tuple[List[str], int], None]:
+def generate_annotation_lists(list_id_canvas: List[str], n_annotation:int=100, **kwargs) -> Generator[Dict, Tuple[List[str], int], None]:
     """
     generator creating 1 annotation list per id_canvas in `list_id_canvas`, with `n_annotation` annotations each
     """
+    list_id_canvas = kwargs.get("list_id_canvas", None) or list_id_canvas
+    n_annotation = kwargs.get("n_annotation", None) or n_annotation
     for id_canvas in list_id_canvas:
         yield generate_annotation_list(id_canvas, n_annotation)
     return

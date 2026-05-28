@@ -1,5 +1,8 @@
+import os
 from pathlib import Path
 from itertools import chain
+
+from dotenv import load_dotenv
 
 
 PATH_SRC = Path(__file__).parent.resolve()
@@ -9,6 +12,18 @@ PATH_MANIFEST_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_manifest.jsonld"
 PATH_ANNOTATION_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_annotation.jsonld"
 PATH_CANVAS_2_TEMPLATE = PATH_DATA / "iiif_presentation_2_canvas.jsonld"
 PATH_OUT = PATH_ROOT / "out"
+
+path_dotenv = PATH_ROOT / ".env.aiiinotate"
+if not path_dotenv.exists():
+    raise FileNotFoundError(f".env.aiiinotate file not found at: '{path_dotenv}'")
+
+load_dotenv(dotenv_path=PATH_ROOT / ".env.aiiinotate")
+DB_NAME = os.getenv("MONGODB_DB")
+MONGODB_HOST = os.getenv("MONGODB_HOST")
+MONGODB_PORT = os.getenv("MONGODB_PORT")
+AIIINOTATE_HOST = os.getenv("AIIINOTATE_HOST")
+AIIINOTATE_PORT = os.getenv("AIIINOTATE_PORT")
+AIIINOTATE_SCHEME = os.getenv("AIIINOTATE_SCHEME")
 
 # number of times a single benchmark operation is repeated
 N_ITERATIONS = 50

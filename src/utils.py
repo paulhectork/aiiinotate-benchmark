@@ -1,9 +1,13 @@
+import os
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from dotenv import load_dotenv
 import orjson
 
-from src.constants import PATH_OUT
+from src.constants import PATH_OUT, PATH_ROOT, MONGODB_HOST, MONGODB_PORT, DB_NAME
+
 
 def orjson_deepcopy(d: dict) -> dict:
     """optimized alternative of copy.deepcopy"""
@@ -12,28 +16,42 @@ def orjson_deepcopy(d: dict) -> dict:
 def bytes_to_str(b: bytes) -> str:
     return b.decode("utf-8")
 
+# NOTE unused
+def sanitize_surrogates(obj):
+    """avoid orjson parsing errors when writing JSON objs to file."""
+    if isinstance(obj, str):
+        return obj.encode("utf-8", errors="replace").decode("utf-8")
+    elif isinstance(obj, dict):
+        return {k: sanitize_surrogates(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [sanitize_surrogates(i) for i in obj]
+    return obj
+
 def json_parse(d: str|bytes) -> Dict:
     """parse a string to a Dict"""
+    if isinstance(d, str):
+        d = d.encode("utf-8")
     return orjson.loads(d)
 
-def json_dumps(d: dict|list) -> bytes:
-    return orjson.dumps(d, option=orjson.OPT_INDENT_2)
+def json_dumps(d: dict|list, indent=True) -> bytes:
+    if indent:
+        return orjson.dumps(d, option=orjson.OPT_INDENT_2 if indent else None)
+    else:
+        return orjson.dumps(d)
 
 def json_read(fp: Path) -> Dict:
     with open(fp, mode="rb") as fh:
         return json_parse(fh.read())
 
-def json_write(fp: str|Path, d: dict) -> None:
+def json_write(fp: str|Path, d: dict, indent=True) -> None:
     with open(fp, mode="wb") as fh:
-        d_str = json_dumps(d)
+        d_str = json_dumps(d, indent)
         fh.write(d_str)
 
 def write_report(basename: str, report: Dict) -> None:
     if not PATH_OUT.exists():
         PATH_OUT.mkdir()
-    with open(PATH_OUT / f"{basename}.json", mode="wb") as fh:
-        report_bytes = orjson.dumps(report, option=orjson.OPT_INDENT_2)
-        fh.write(report_bytes)
+    json_write(PATH_OUT / f"{basename}.json", report, True)
     return
 
 def pprint(jsonlike: Dict|List, maxlen=-1) -> None:
@@ -79,3 +97,12 @@ def get_manifest_short_id(iiif_uri:str) -> str:
 
 def get_canvas_ids(manifest: Dict) -> List[Optional[str]]:
     return [ c["@id"] for c in manifest["sequences"][0]["canvases"] ]
+
+
+def run_bash(bash_command: str) -> None:
+    result = subprocess.run(bash_command, shell=True)
+    if result.returncode != 0:
+        print("> run_bash: bash command:", str)
+        print("> run_bash: subprocess stout:", result.stdout)
+        print("> run_bash: subprocess stderr:", result.stderr)
+        raise subprocess.SubprocessError(f"run_bash exited with non 0 status code for command {bash_command}")

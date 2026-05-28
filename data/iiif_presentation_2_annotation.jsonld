@@ -4,7 +4,7 @@
   "dcterms:created": "2025-03-19T14:38:38",
   "dcterms:modified": "2025-03-19T14:38:38",
   "resource": {
-    "@type": "dctypes:Text",
+    "@type": "oa:TextualBody",
     "format": "text/html",
     "chars": ""
   },
@@ -13,6 +13,5 @@
     "oa:tagging",
     "oa:commenting"
   ],
-  "@context": "http://iiif.io/api/presentation/2/context.json",
-  "label": ""
+  "@context": "http://iiif.io/api/presentation/2/context.json"
 }
