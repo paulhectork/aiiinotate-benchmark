@@ -16,16 +16,16 @@ def orjson_deepcopy(d: dict) -> dict:
 def bytes_to_str(b: bytes) -> str:
     return b.decode("utf-8")
 
-# NOTE unused
-def sanitize_surrogates(obj):
-    """avoid orjson parsing errors when writing JSON objs to file."""
-    if isinstance(obj, str):
-        return obj.encode("utf-8", errors="replace").decode("utf-8")
-    elif isinstance(obj, dict):
-        return {k: sanitize_surrogates(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [sanitize_surrogates(i) for i in obj]
-    return obj
+# # NOTE unused
+# def sanitize_surrogates(obj):
+#     """avoid orjson parsing errors when writing JSON objs to file."""
+#     if isinstance(obj, str):
+#         return obj.encode("utf-8", errors="replace").decode("utf-8")
+#     elif isinstance(obj, dict):
+#         return {k: sanitize_surrogates(v) for k, v in obj.items()}
+#     elif isinstance(obj, list):
+#         return [sanitize_surrogates(i) for i in obj]
+#     return obj
 
 def json_parse(d: str|bytes) -> Dict:
     """parse a string to a Dict"""
@@ -35,13 +35,16 @@ def json_parse(d: str|bytes) -> Dict:
 
 def json_dumps(d: dict|list, indent=True) -> bytes:
     if indent:
-        return orjson.dumps(d, option=orjson.OPT_INDENT_2 if indent else None)
+        d_b = orjson.dumps(d, option=orjson.OPT_INDENT_2 if indent else None)
     else:
-        return orjson.dumps(d)
+        d_b = orjson.dumps(d)
+    return d_b.decode("utf-8").encode("utf-8")
 
 def json_read(fp: Path) -> Dict:
     with open(fp, mode="rb") as fh:
-        return json_parse(fh.read())
+        import json
+        return json.load(fh)
+        # return json_parse(fh.read())
 
 def json_write(fp: str|Path, d: dict, indent=True) -> None:
     with open(fp, mode="wb") as fh:

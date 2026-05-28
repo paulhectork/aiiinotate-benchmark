@@ -79,15 +79,22 @@ def benchmark(
     type=click.STRING,
     required=True
 )
+@click.option(
+    "-a", "--annotations-only",
+    default=False,
+    type=click.BOOL,
+    is_flag=True,
+    help="only visualize annotation-related benchmarks"
+)
 @common_options
-def visualize(report_file: str, nowrite: bool):
+def visualize(report_file: str, annotations_only, nowrite: bool):
     """
     make a visualization of the results of a previously executed benchmark.
     argument report_file can be either:
     - "latest": visualize the latest report generated
     - the path to a report file
     """
-    make_visualization(report_file, nowrite)
+    make_visualization(report_file, annotations_only, nowrite)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from src.utils import PATH_OUT, json_read
 
 
-report_file_regex = re.compile(r"report_benchmark_[A-Za-z]+_([\d\-\:]+)_\d+steps(\.json)?")
+report_file_regex = re.compile(r"report_benchmark_[A-Za-z]+_([\d\-\:]+)_\d+steps.json")
 def get_latest_report_file() -> Path:
     """get the most recent report file and return its Path"""
     report_files = []
@@ -41,7 +41,7 @@ def get_y(report: dict, key: str) -> list[float]:
     ]
 
 
-def make_plot(report: dict, basename: str, to_file: bool = True) -> None:
+def make_plot(report: dict, basename: str, annotations_only: bool, to_file: bool) -> None:
     x = get_x(report)
     y_data = [
         (
@@ -51,10 +51,6 @@ def make_plot(report: dict, basename: str, to_file: bool = True) -> None:
         (
             "timing_read_annotation",
             "Read anno."
-        ),
-        (
-            "timing_write_manifest",
-            "Write manifest"
         ),
         (
             "timing_write_annotation_list",
@@ -73,11 +69,14 @@ def make_plot(report: dict, basename: str, to_file: bool = True) -> None:
             "Delete anno."
         )
     ]
+    if not annotations_only:
+        y_data.append((
+            "timing_write_manifest",
+            "Write manifest"
+        ))
+
     y_data = [
-        (
-            get_y(report, el[0]),
-            el[1]
-        )
+        ( get_y(report, el[0]), el[1] )
         for el in y_data
     ]
 
@@ -102,7 +101,7 @@ def make_plot(report: dict, basename: str, to_file: bool = True) -> None:
     return
 
 
-def make_visualization(report_file: str|Path, nowrite: bool):
+def make_visualization(report_file: str|Path, annotations_only: bool, nowrite: bool):
     try:
         if report_file == "latest":
             report_file = get_latest_report_file()
@@ -113,4 +112,4 @@ def make_visualization(report_file: str|Path, nowrite: bool):
         print("report file not found and could not be visualized. if you used `latest`, make sure you have ran a benchmark before. otherwise, make sure you specified the correct path to the benchmark report file.")
         exit(1)
 
-    make_plot(report, report_file.name.replace(".json", ""), to_file=not nowrite)
+    make_plot(report, report_file.name.replace(".json", ""), annotations_only=annotations_only, to_file=not nowrite)
