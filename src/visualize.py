@@ -27,11 +27,17 @@ def get_latest_report_file() -> Path:
     )
     return report_files[-1][0]
 
+def maybe_drop_step_1(report: dict):
+    if len(report["results"]) > 2:
+        report["results"] = report["results"][1:]
+        return report
+    return report
 
-def get_x(report: dict) -> list:
+def get_x(report: dict, fancy: bool) -> list:
     to_string = lambda n: f"{n:,}"
     return [
         to_string(step["step"]["n_annotation"])
+        if fancy else step["step"]["n_annotation"]
         for step in report["results"]
     ]
 
@@ -43,33 +49,39 @@ def get_y(report: dict, key: str) -> list[float]:
 
 
 def init_fig(report: dict):
-    font_size_title = 28
-    font_size_axis = 22
-    font_size_text = 16
+    font_size_title = 34
+    font_size_axis = 30
+    font_size_text = 24
     # NOTE: rcParams must be updated before creating fig
     plt.rcParams.update({
         "text.usetex": True,
         "font.family": "serif",
         "font.size": font_size_text,
+        "legend.edgecolor": "black",
+        "legend.loc": "upper right",
+        "legend.fancybox": False,
+        "legend.shadow": False,
+        "legend.framealpha": 0,
+        "legend.edgecolor": "black",
     })
-    # plt.style.use("seaborn-v0_8-talk")
     plt.ioff()
 
-    fig, ax = plt.subplots()
+    fig = plt.figure()
+    ax = plt.subplot()
     fig.set_figheight(10)
     fig.set_figwidth(20)
     ax.yaxis.set_label_coords(-0.06,0.5)
     ax.xaxis.set_label_coords(0.5,-0.06)
 
-
-    fig.suptitle("Benchmark results", size=font_size_title, position=(0.5,0.95))
-    plt.xlabel("Number of annotations in database", size=font_size_axis)
-    plt.ylabel(f"Average execution time per operation (in {report['time_unit']})", size=font_size_axis)
+    # fig.suptitle("Benchmark results", size=font_size_title, position=(0.5,0.95))
+    plt.xlabel(r"\textnumero{} of annotations in database", size=font_size_axis)
+    plt.ylabel(f"Avg. execution time / operation (in {report['time_unit']})", size=font_size_axis)
     return fig, ax
 
 
 def make_plot(report: dict, basename: str, annotations_only: bool, to_file: bool) -> None:
-    x = get_x(report)
+    report = maybe_drop_step_1(report)
+    x = get_x(report, True)
     y_data = [
         ( "timing_read_annotation_list", "Read anno. list", ),
         ( "timing_read_annotation", "Read anno." ),
@@ -86,10 +98,11 @@ def make_plot(report: dict, basename: str, annotations_only: bool, to_file: bool
     ]
 
     fig, ax = init_fig(report)
-
     for el in y_data:
-        ax.plot(x, el[0], label=el[1])
-    ax.legend()
+        ax.plot(x, el[0], "-o", label=el[1])
+
+    # style bbox. necessary to be here
+    ax.legend(bbox_to_anchor=(1.23,1))
 
     if to_file:
         plt.savefig(PATH_OUT / f"{basename}.png", transparent=False, bbox_inches="tight")
