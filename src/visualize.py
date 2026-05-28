@@ -3,6 +3,7 @@ from datetime import datetime
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib import rc
 
 from src.utils import PATH_OUT, json_read
 
@@ -41,54 +42,50 @@ def get_y(report: dict, key: str) -> list[float]:
     ]
 
 
+def init_fig(report: dict):
+    font_size_title = 28
+    font_size_axis = 22
+    font_size_text = 16
+    # NOTE: rcParams must be updated before creating fig
+    plt.rcParams.update({
+        "text.usetex": True,
+        "font.family": "serif",
+        "font.size": font_size_text,
+    })
+    # plt.style.use("seaborn-v0_8-talk")
+    plt.ioff()
+
+    fig, ax = plt.subplots()
+    fig.set_figheight(10)
+    fig.set_figwidth(20)
+    ax.yaxis.set_label_coords(-0.06,0.5)
+    ax.xaxis.set_label_coords(0.5,-0.06)
+
+
+    fig.suptitle("Benchmark results", size=font_size_title, position=(0.5,0.95))
+    plt.xlabel("Number of annotations in database", size=font_size_axis)
+    plt.ylabel(f"Average execution time per operation (in {report['time_unit']})", size=font_size_axis)
+    return fig, ax
+
+
 def make_plot(report: dict, basename: str, annotations_only: bool, to_file: bool) -> None:
     x = get_x(report)
     y_data = [
-        (
-            "timing_read_annotation_list",
-            "Read anno. list",
-        ),
-        (
-            "timing_read_annotation",
-            "Read anno."
-        ),
-        (
-            "timing_write_annotation_list",
-            "Write anno. list"
-        ),
-        (
-            "timing_write_annotation",
-            "Write anno."
-        ),
-        (
-            "timing_update_annotation",
-            "Update anno."
-        ),
-        (
-            "timing_delete_annotation",
-            "Delete anno."
-        )
+        ( "timing_read_annotation_list", "Read anno. list", ),
+        ( "timing_read_annotation", "Read anno." ),
+        ( "timing_write_annotation_list", "Write anno. list" ),
+        ( "timing_write_annotation", "Write anno." ),
+        ( "timing_update_annotation", "Update anno." ),
+        ( "timing_delete_annotation", "Delete anno." )
     ]
     if not annotations_only:
-        y_data.append((
-            "timing_write_manifest",
-            "Write manifest"
-        ))
-
+        y_data.append(( "timing_write_manifest", "Write manifest" ))
     y_data = [
         ( get_y(report, el[0]), el[1] )
         for el in y_data
     ]
 
-    fig, ax = plt.subplots()
-    fig.set_figheight(10)
-    fig.set_figwidth(20)
-
-    plt.style.use("_mpl-gallery")
-    plt.ioff()
-
-    plt.xlabel("Number of annotations in database")
-    plt.ylabel(f"Average execution time per operation (in {report['time_unit']})")
+    fig, ax = init_fig(report)
 
     for el in y_data:
         ax.plot(x, el[0], label=el[1])

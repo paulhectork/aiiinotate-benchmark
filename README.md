@@ -6,11 +6,13 @@ A benchmark of the [aiiinotate](github.com/Aikon-platform/aiiinotate/) IIIF anno
 
 ## Requirements
 
-The benchmark requires `uv`, aiiinotate requires `node` and `mongodb`.
+The benchmark requires `uv`, aiiinotate requires `node` and `mongodb` and `TexLive` to generate figures.
 
 - [installing uv](https://docs.astral.sh/uv/getting-started/installation/)
 - [installing node](https://nodejs.org/en/download) (MacOS/Linux installation script can be found [here](https://github.com/Aikon-platform/aiiinotate/blob/main/scripts/setup_node.sh))
 - [installing mongodb](https://www.mongodb.com/docs/manual/installation/) (MacOS/Linux installation script can be found [here](https://github.com/Aikon-platform/aiiinotate/blob/main/scripts/setup_mongodb.sh))
+- [installing texlive](https://tug.org/texlive/quickinstall.html)
+- **cm-super** (for $$\latex$$ figures): `sudo apt install cm-super` 
 
 ---
 
