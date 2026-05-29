@@ -1,5 +1,6 @@
 # Benchmark methodology
 
+---
 
 ## Overview
 
@@ -128,3 +129,19 @@ For clarity, for each step, the number of annotations/manifests/canvases that ar
 ### 3. Purge
 
 At the end of a step, the entire database is purged. For the next step, we'll start with a blank database.
+
+---
+
+## Discussion
+
+### Write times
+
+Write times (`Write anno. list`, `Write anno.`) presented above are in all probability lower than in real world applications.
+
+Indeed, a big bottleneck when inserting annotations is to fetch an annotation's target manifest through HTTP, in ordrer to fill the `canvasIdx` field.
+
+When running the benchmark, all annotation URIs are on `https://localhost`, an URI on localhost that is inaccessible. The request thus fails instantly.
+
+The reason this was done is that HTTP requests are non-deterministic: if we make requests to an external server storing IIIF manifests, then we end up also benchmarking this server. By fetching manifests on an inaccessible `https://localhost`, this non-deterministic process becomes deterministic and the benchmark makes more sense. 
+
+

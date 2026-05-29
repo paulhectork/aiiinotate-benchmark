@@ -2,6 +2,8 @@
 
 A benchmark of the [aiiinotate](github.com/Aikon-platform/aiiinotate/) IIIF annotations server.
 
+![benchmark results](report_benchmark_aiiinotate_2026-05-28-02:50:48_7steps.png)
+
 ---
 
 ## Requirements
