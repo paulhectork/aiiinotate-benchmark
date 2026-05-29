@@ -1,0 +1,21 @@
+{
+  "name": "aiiinotate",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "aiiinotate": "dotenvx run -f ../.env.aiiinotate -- aiiinotate",
+    "aiiinotate_prof": "node --prof node_modules/.bin/aiiinotate",
+    "aiiinotate_clinic": "clinic doctor -- node node_modules/.bin/aiiinotate",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@dotenvx/dotenvx": "^1.66.0",
+    "aiiinotate": "^0.11.0",
+    "clinic": "^13.0.0"
+  }
+}
